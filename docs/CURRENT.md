@@ -12,7 +12,7 @@ Stage 0 — foundation (complete).
 - Backend liveness/readiness endpoints and correlation IDs added.
 - Initial Russian, Kazakh, and English application shell added.
 - Backend and frontend smoke tests added.
-- Canonical Make commands and GitHub Actions checks defined.
+- Canonical local Make verification commands defined.
 - The complete Compose stack starts successfully and all health checks pass.
 - Backend formatter, container lint, PHPStan, and PHPUnit checks pass.
 - Frontend formatter, ESLint, TypeScript, Vitest, and production build checks pass.
@@ -21,6 +21,7 @@ Stage 0 — foundation (complete).
 
 - No known Stage 0 blockers.
 - The current web interface is only the multilingual foundation shell; product features start in Stage 1.
+- GitHub Actions is intentionally disabled to avoid hosted-runner costs; checks run locally for now.
 
 ## Next recommended step
 
