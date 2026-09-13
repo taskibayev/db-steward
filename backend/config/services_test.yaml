@@ -1,0 +1,6 @@
+services:
+    App\Auth\MockOAuthProvider:
+        autowire: true
+        autoconfigure: true
+        arguments:
+            $environment: '%kernel.environment%'

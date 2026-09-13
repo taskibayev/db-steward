@@ -26,7 +26,16 @@ Planned bounded modules: Auth, User, Connection, Permission, ClientDatabase, Sch
 
 ## System data model
 
-Planned tables: users, oauth_identities, client_connections, user_database_access, user_table_permissions, audit_operations, audit_snapshots, jobs, sql_executions, temporary_query_results, and notifications. Product tables and their first migration belong to later stages.
+Implemented tables: `users` and `oauth_identities`. Planned later tables: `client_connections`, `user_database_access`, `user_table_permissions`, `audit_operations`, `audit_snapshots`, `jobs`, `sql_executions`, `temporary_query_results`, and `notifications`.
+
+## Authentication flow
+
+- Accounts are pre-created; no public registration endpoint exists.
+- Administrators are created with `app:user:create-admin`; the administration API creates managers only.
+- OAuth providers implement a common backend interface. Google is always available; mock OAuth is registered only in `dev` and `test` and also refuses construction for `prod`.
+- OAuth state is single-use and stored in the server-side session. Only a verified email matching an active account is accepted.
+- Authentication uses a Symfony session cookie. Mutating `/api` calls require a session-bound CSRF token.
+- Administrators inherit manager permissions. Disabled users are rejected by the security user checker.
 
 ## Decisions
 
@@ -37,4 +46,3 @@ Planned tables: users, oauth_identities, client_connections, user_database_acces
 - Centrifugo private user channels.
 - Nginx single-origin routing.
 - Russian-default frontend catalogs with Kazakh and English from the first frontend slice.
-
