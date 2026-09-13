@@ -1,0 +1,15 @@
+.env
+.env.local
+.idea/
+.vscode/
+.DS_Store
+backend/.env.local
+backend/.phpunit.cache/
+backend/.php-cs-fixer.cache
+backend/var/
+backend/vendor/
+frontend/dist/
+frontend/node_modules/
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/

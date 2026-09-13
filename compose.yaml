@@ -1,0 +1,113 @@
+name: ${COMPOSE_PROJECT_NAME:-db-steward}
+
+services:
+  nginx:
+    image: nginx:1.28-alpine
+    ports: ["${APP_PORT:-8080}:80"]
+    volumes:
+      - ./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./backend/public:/app/public:ro
+    depends_on:
+      backend: { condition: service_healthy }
+      frontend: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build: { context: ./backend, target: development }
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - backend_vendor:/app/vendor
+    environment:
+      APP_ENV: dev
+      APP_SECRET: ${APP_SECRET:-local-development-only}
+      DATABASE_URL: mysql://${MYSQL_USER:-db_steward}:${MYSQL_PASSWORD:-db_steward_dev}@system-mysql:3306/${MYSQL_DATABASE:-db_steward}?serverVersion=8.4&charset=utf8mb4
+      MESSENGER_TRANSPORT_DSN: amqp://guest:guest@rabbitmq:5672/%2f/messages
+    depends_on:
+      system-mysql: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "php-fpm-healthcheck"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  worker:
+    build: { context: ./backend, target: development }
+    working_dir: /app
+    command: php bin/console messenger:consume async --time-limit=3600 --memory-limit=256M --sleep=1 -vv
+    stop_grace_period: 30s
+    volumes:
+      - ./backend:/app
+      - backend_vendor:/app/vendor
+    environment:
+      APP_ENV: dev
+      APP_SECRET: ${APP_SECRET:-local-development-only}
+      DATABASE_URL: mysql://${MYSQL_USER:-db_steward}:${MYSQL_PASSWORD:-db_steward_dev}@system-mysql:3306/${MYSQL_DATABASE:-db_steward}?serverVersion=8.4&charset=utf8mb4
+      MESSENGER_TRANSPORT_DSN: amqp://guest:guest@rabbitmq:5672/%2f/messages
+    depends_on:
+      system-mysql: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    restart: unless-stopped
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5173"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  system-mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-db_steward}
+      MYSQL_USER: ${MYSQL_USER:-db_steward}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-db_steward_dev}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-db_steward_root_dev}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
+    volumes: [system_mysql_data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    ports: ["127.0.0.1:15672:15672"]
+    volumes: [rabbitmq_data:/var/lib/rabbitmq]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  centrifugo:
+    image: centrifugo/centrifugo:v5
+    command: centrifugo -c config.json
+    environment:
+      CENTRIFUGO_TOKEN_HMAC_SECRET_KEY: ${CENTRIFUGO_TOKEN_SECRET:-local-development-token-secret}
+      CENTRIFUGO_API_KEY: ${CENTRIFUGO_API_KEY:-local-development-api-key}
+    volumes: [./infra/centrifugo/config.json:/centrifugo/config.json:ro]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  backend_vendor:
+  frontend_node_modules:
+  system_mysql_data:
+  rabbitmq_data:
+
