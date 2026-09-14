@@ -2,7 +2,7 @@
 
 DB Steward provides controlled access to client MySQL databases. Managers can browse permitted data, edit one row at a time, inspect an append-only audit trail, and safely undo supported CRUD operations. Long-running custom SQL will be handled asynchronously.
 
-Stages 0 and 1 are complete: the application foundation, system users, roles, console-only administrator creation, and OAuth sign-in are available.
+Stages 0 through 3 are complete: the application foundation, authentication, encrypted client connections, and manager access policies are available.
 
 ## Requirements
 
@@ -68,5 +68,21 @@ GitHub Actions is intentionally disabled. Run `make check` locally before reques
 ## Client database connections
 
 Administrators can create, edit, test, enable, and disable connections from the **Databases** screen. One connection always targets exactly one MySQL database. Creating or editing performs only read-only connectivity checks (`SELECT 1`, `SELECT VERSION()`, and `SELECT DATABASE()`). Login and password values are encrypted before persistence and never returned by the API.
+
+## Local demo data
+
+Create a local manager plus isolated Northwind and Sakila client databases:
+
+```bash
+make demo
+```
+
+The default manager is `manager@example.com`. Override it with `DEMO_MANAGER_EMAIL=you@example.com make demo`. In development, sign in through the **Test sign-in** form; there is no password because application authentication uses OAuth. The command is idempotent, assigns both databases in default-allow mode, and cannot run in production.
+
+The demo database user receives only `SELECT`, `INSERT`, `UPDATE`, and `DELETE`; it cannot modify schemas. Northwind is pinned to the [MyWind MySQL conversion](https://github.com/dalers/mywind), while Sakila comes from the [official MySQL sample](https://dev.mysql.com/doc/sakila/en/). Downloads are checksum-verified and imported only when their target database has no tables.
+
+## Manager access
+
+Administrators assign databases on the **Access rights** screen. Each assignment either denies everything except explicit table allowances or allows everything except explicit table denials. `SELECT`, `INSERT`, `UPDATE`, and `DELETE` can each inherit or override that default independently. Managers only see active databases currently assigned to them.
 
 See [the architecture](docs/ARCHITECTURE.md), [technical specification](docs/TECHNICAL_SPEC.md), and [current status](docs/CURRENT.md).

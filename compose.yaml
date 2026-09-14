@@ -88,6 +88,20 @@ services:
       timeout: 5s
       retries: 20
 
+  client-mysql-demo:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: demo_root_dev
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
+    volumes:
+      - client_mysql_demo_data:/var/lib/mysql
+      - ./infra/demo-mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   rabbitmq:
     image: rabbitmq:4.1-management-alpine
     ports: ["127.0.0.1:15672:15672"]
@@ -115,4 +129,5 @@ volumes:
   backend_vendor:
   frontend_node_modules:
   system_mysql_data:
+  client_mysql_demo_data:
   rabbitmq_data:

@@ -2,7 +2,7 @@
 
 ## Stage
 
-Stage 2 — encrypted client database connections (complete).
+Stage 3 — manager database assignments and CRUD permissions (complete).
 
 ## Completed
 
@@ -34,6 +34,16 @@ Stage 2 — encrypted client database connections (complete).
 - API responses never expose usernames, passwords, ciphertext, encryption keys, or raw driver errors.
 - The frontend provides connection management in Russian, Kazakh, and English.
 - Backend: 13 tests and 111 assertions pass. Frontend: 2 tests pass, and the production build succeeds.
+- System `user_database_access` and `user_table_permissions` tables and their migration are implemented.
+- Administrators can assign a client database to a manager using either default-deny or default-allow mode and can revoke that assignment.
+- Per-table `SELECT`, `INSERT`, `UPDATE`, and `DELETE` decisions independently allow, deny, or inherit the assignment default.
+- Missing assignments deny access; administrators retain full access; inactive users and connections are always denied.
+- Managers can list only their assigned active client databases.
+- The frontend provides access-assignment and table-rule management in Russian, Kazakh, and English.
+- Backend: 18 tests and 171 assertions pass. Frontend: 2 tests pass, and the production build succeeds.
+- An isolated local client MySQL service, checksum-verified Northwind and Sakila imports, and idempotent `make demo` provisioning are available.
+- The local demo manager is assigned both sample databases with data-only CRUD credentials; demo provisioning is disabled in production.
+- Backend: 19 tests and 180 assertions pass after adding demo-provisioning coverage.
 
 ## Known issues
 
@@ -42,7 +52,8 @@ Stage 2 — encrypted client database connections (complete).
 - Google sign-in requires project-specific OAuth credentials and an authorized callback URL; local mock sign-in is ready without them.
 - Production requires a unique backed-up `CLIENT_CREDENTIALS_KEY`; automatic key rotation is not implemented yet.
 - TLS certificate options for client MySQL connections are not exposed in the current connection form yet.
+- Table rules currently accept a safe manually entered identifier; selection from verified live schema metadata arrives with Stage 4.
 
 ## Next recommended step
 
-Begin Stage 3: manager-to-database assignments and default allow/default deny table permissions.
+Begin Stage 4: read-only schema discovery and permission-aware table browsing with server-side pagination, sorting, and filters.

@@ -62,6 +62,7 @@ describe('App', () => {
         if (url.endsWith('/config'))
           return Promise.resolve(jsonResponse({ providers: ['google', 'mock'] }))
         if (url.endsWith('/connections')) return Promise.resolve(jsonResponse({ items: [] }))
+        if (url.endsWith('/access')) return Promise.resolve(jsonResponse({ items: [] }))
         return Promise.resolve(
           jsonResponse({
             items: [
@@ -87,5 +88,8 @@ describe('App', () => {
     expect(wrapper.text()).toContain('Пользователи')
     expect(wrapper.text()).toContain('admin@example.com')
     expect(wrapper.text()).toContain('Добавить менеджера')
+    await wrapper.get('nav button:nth-child(3)').trigger('click')
+    expect(wrapper.text()).toContain('Назначить базу менеджеру')
+    expect(wrapper.text()).toContain('Правило для таблицы')
   })
 })

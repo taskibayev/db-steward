@@ -2,19 +2,28 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
+  createDatabaseAccess,
   createConnection,
   createManager,
+  deleteDatabaseAccess,
+  deleteTablePermission,
   getAuthProviders,
   getAuthState,
   getConnections,
+  getDatabaseAccesses,
   getUsers,
   logout,
   setConnectionActive,
   setUserActive,
   testConnection,
+  updateDatabaseAccessMode,
   updateConnection,
+  updateTablePermission,
+  type AccessMode,
   type AuthState,
   type ClientConnection,
+  type DatabaseAccess,
+  type TablePermission,
   type User,
 } from './api'
 
@@ -23,6 +32,7 @@ const auth = ref<AuthState>({ authenticated: false, user: null })
 const providers = ref<string[]>([])
 const users = ref<User[]>([])
 const connections = ref<ClientConnection[]>([])
+const accesses = ref<DatabaseAccess[]>([])
 const managerEmail = ref('')
 const mockEmail = ref('admin@example.com')
 const activeSection = ref('databases')
@@ -38,10 +48,21 @@ const connectionForm = reactive({
   username: '',
   password: '',
 })
+const accessForm = reactive({ userId: '', connectionId: '', mode: 'default_deny' as AccessMode })
+const tableForm = reactive({
+  accessId: '',
+  table: '',
+  select: '' as DecisionInput,
+  insert: '' as DecisionInput,
+  update: '' as DecisionInput,
+  delete: '' as DecisionInput,
+})
+type DecisionInput = '' | 'allow' | 'deny'
 const isAdmin = computed(() => auth.value.user?.role === 'administrator')
+const managers = computed(() => users.value.filter((user) => user.role === 'manager'))
 const navigation = computed(() =>
   isAdmin.value
-    ? ['databases', 'users', 'history', 'jobs', 'notifications']
+    ? ['databases', 'users', 'access', 'history', 'jobs', 'notifications']
     : ['databases', 'history', 'jobs', 'notifications'],
 )
 
@@ -51,7 +72,11 @@ onMounted(async () => {
     auth.value = state
     providers.value = configuredProviders
     if (isAdmin.value)
-      [connections.value, users.value] = await Promise.all([getConnections(), getUsers()])
+      [connections.value, users.value, accesses.value] = await Promise.all([
+        getConnections(),
+        getUsers(),
+        getDatabaseAccesses(),
+      ])
   } catch (caught) {
     setError(caught)
   } finally {
@@ -158,6 +183,94 @@ async function toggleUser(user: User): Promise<void> {
   }
 }
 
+function replaceAccess(updated: DatabaseAccess): void {
+  accesses.value = accesses.value.map((item) => (item.id === updated.id ? updated : item))
+}
+
+async function addAccess(): Promise<void> {
+  saving.value = true
+  error.value = ''
+  try {
+    accesses.value.unshift(
+      await createDatabaseAccess(accessForm.userId, accessForm.connectionId, accessForm.mode),
+    )
+    Object.assign(accessForm, { userId: '', connectionId: '', mode: 'default_deny' })
+  } catch (caught) {
+    setError(caught)
+  } finally {
+    saving.value = false
+  }
+}
+
+async function changeAccessMode(access: DatabaseAccess): Promise<void> {
+  try {
+    replaceAccess(await updateDatabaseAccessMode(access.id, access.mode))
+  } catch (caught) {
+    setError(caught)
+  }
+}
+
+async function revokeAccess(access: DatabaseAccess): Promise<void> {
+  try {
+    await deleteDatabaseAccess(access.id)
+    accesses.value = accesses.value.filter((item) => item.id !== access.id)
+  } catch (caught) {
+    setError(caught)
+  }
+}
+
+function decision(value: DecisionInput): boolean | null {
+  return value === '' ? null : value === 'allow'
+}
+
+async function saveTableRule(): Promise<void> {
+  saving.value = true
+  error.value = ''
+  try {
+    const permission = await updateTablePermission(tableForm.accessId, tableForm.table, {
+      select: decision(tableForm.select),
+      insert: decision(tableForm.insert),
+      update: decision(tableForm.update),
+      delete: decision(tableForm.delete),
+    })
+    const access = accesses.value.find((item) => item.id === tableForm.accessId)
+    if (access) {
+      const permissions = access.tablePermissions.filter((item) => item.table !== permission.table)
+      replaceAccess({ ...access, tablePermissions: [...permissions, permission] })
+    }
+    Object.assign(tableForm, {
+      accessId: '',
+      table: '',
+      select: '',
+      insert: '',
+      update: '',
+      delete: '',
+    })
+  } catch (caught) {
+    setError(caught)
+  } finally {
+    saving.value = false
+  }
+}
+
+async function removeTableRule(access: DatabaseAccess, permission: TablePermission): Promise<void> {
+  try {
+    await deleteTablePermission(access.id, permission.table)
+    replaceAccess({
+      ...access,
+      tablePermissions: access.tablePermissions.filter((item) => item.id !== permission.id),
+    })
+  } catch (caught) {
+    setError(caught)
+  }
+}
+
+function sectionTitle(kind: 'eyebrow' | 'title'): string {
+  if (activeSection.value === 'users') return t(`users.${kind}`)
+  if (activeSection.value === 'access') return t(`access.${kind}`)
+  return t(`connections.${kind}`)
+}
+
 async function signOut(): Promise<void> {
   await logout()
   globalThis.location.assign('/')
@@ -235,9 +348,9 @@ async function signOut(): Promise<void> {
       <header class="topbar">
         <div>
           <p class="eyebrow">
-            {{ activeSection === 'users' ? t('users.eyebrow') : t('connections.eyebrow') }}
+            {{ sectionTitle('eyebrow') }}
           </p>
-          <h1>{{ activeSection === 'users' ? t('users.title') : t('connections.title') }}</h1>
+          <h1>{{ sectionTitle('title') }}</h1>
         </div>
         <select v-model="locale" :aria-label="t('common.language')">
           <option value="ru">Русский</option>
@@ -422,6 +535,172 @@ async function signOut(): Promise<void> {
               </tbody>
             </table>
           </div>
+        </section>
+      </template>
+
+      <template v-else-if="isAdmin && activeSection === 'access'">
+        <section class="panel access-editor">
+          <div class="section-heading">
+            <div>
+              <h2>{{ t('access.assignTitle') }}</h2>
+              <p>{{ t('access.assignDescription') }}</p>
+            </div>
+          </div>
+          <form class="access-form" @submit.prevent="addAccess">
+            <label
+              ><span>{{ t('access.manager') }}</span
+              ><select v-model="accessForm.userId" required>
+                <option value="" disabled>{{ t('access.chooseManager') }}</option>
+                <option v-for="manager in managers" :key="manager.id" :value="manager.id">
+                  {{ manager.email }}
+                </option>
+              </select></label
+            >
+            <label
+              ><span>{{ t('access.database') }}</span
+              ><select v-model="accessForm.connectionId" required>
+                <option value="" disabled>{{ t('access.chooseDatabase') }}</option>
+                <option
+                  v-for="connection in connections"
+                  :key="connection.id"
+                  :value="connection.id"
+                >
+                  {{ connection.name }}
+                </option>
+              </select></label
+            >
+            <label
+              ><span>{{ t('access.defaultMode') }}</span
+              ><select v-model="accessForm.mode">
+                <option value="default_deny">{{ t('access.modes.default_deny') }}</option>
+                <option value="default_allow">{{ t('access.modes.default_allow') }}</option>
+              </select></label
+            >
+            <button class="button primary" type="submit" :disabled="saving">
+              {{ t('access.assign') }}
+            </button>
+          </form>
+        </section>
+
+        <section class="panel table-panel">
+          <div class="section-heading">
+            <div>
+              <h2>{{ t('access.listTitle') }}</h2>
+              <p>{{ t('access.listDescription') }}</p>
+            </div>
+            <span class="count-badge">{{ accesses.length }}</span>
+          </div>
+          <div v-if="accesses.length" class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>{{ t('access.manager') }}</th>
+                  <th>{{ t('access.database') }}</th>
+                  <th>{{ t('access.defaultMode') }}</th>
+                  <th>{{ t('access.exceptions') }}</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="access in accesses" :key="access.id">
+                  <td>
+                    <strong>{{ access.user.email }}</strong>
+                  </td>
+                  <td>
+                    <strong>{{ access.connection.name }}</strong
+                    ><small>{{ access.connection.database }}</small>
+                  </td>
+                  <td>
+                    <select v-model="access.mode" @change="changeAccessMode(access)">
+                      <option value="default_deny">{{ t('access.modes.default_deny') }}</option>
+                      <option value="default_allow">{{ t('access.modes.default_allow') }}</option>
+                    </select>
+                  </td>
+                  <td>
+                    <div v-if="access.tablePermissions.length" class="rule-list">
+                      <div
+                        v-for="permission in access.tablePermissions"
+                        :key="permission.id"
+                        class="rule-row"
+                      >
+                        <code>{{ permission.table }}</code
+                        ><span
+                          v-for="operation in ['select', 'insert', 'update', 'delete'] as const"
+                          :key="operation"
+                          :class="[
+                            'decision',
+                            permission[operation] === true
+                              ? 'allow'
+                              : permission[operation] === false
+                                ? 'deny'
+                                : 'inherit',
+                          ]"
+                          >{{ operation.toUpperCase() }}:
+                          {{
+                            permission[operation] === null
+                              ? t('access.inherit')
+                              : permission[operation]
+                                ? t('access.allow')
+                                : t('access.deny')
+                          }}</span
+                        ><button
+                          class="text-button"
+                          type="button"
+                          @click="removeTableRule(access, permission)"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                    <span v-else>—</span>
+                  </td>
+                  <td class="actions">
+                    <button class="text-button danger" type="button" @click="revokeAccess(access)">
+                      {{ t('access.revoke') }}
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-else class="compact-empty">{{ t('access.empty') }}</div>
+        </section>
+
+        <section class="panel access-editor">
+          <div class="section-heading">
+            <div>
+              <h2>{{ t('access.ruleTitle') }}</h2>
+              <p>{{ t('access.ruleDescription') }}</p>
+            </div>
+          </div>
+          <form class="rule-form" @submit.prevent="saveTableRule">
+            <label
+              ><span>{{ t('access.assignment') }}</span
+              ><select v-model="tableForm.accessId" required>
+                <option value="" disabled>{{ t('access.chooseAssignment') }}</option>
+                <option v-for="access in accesses" :key="access.id" :value="access.id">
+                  {{ access.user.email }} — {{ access.connection.name }}
+                </option>
+              </select></label
+            >
+            <label
+              ><span>{{ t('access.table') }}</span
+              ><input v-model="tableForm.table" required maxlength="64" pattern="[A-Za-z0-9_$-]+"
+            /></label>
+            <label
+              v-for="operation in ['select', 'insert', 'update', 'delete'] as const"
+              :key="operation"
+              ><span>{{ operation.toUpperCase() }}</span
+              ><select v-model="tableForm[operation]">
+                <option value="">{{ t('access.inherit') }}</option>
+                <option value="allow">{{ t('access.allow') }}</option>
+                <option value="deny">{{ t('access.deny') }}</option>
+              </select></label
+            >
+            <button class="button primary" type="submit" :disabled="saving">
+              {{ t('access.saveRule') }}
+            </button>
+          </form>
         </section>
       </template>
 

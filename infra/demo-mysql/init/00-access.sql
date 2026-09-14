@@ -1,0 +1,7 @@
+CREATE DATABASE IF NOT EXISTS northwind CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE IF NOT EXISTS sakila CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+CREATE USER IF NOT EXISTS 'db_steward_demo'@'%' IDENTIFIED BY 'demo_client_dev';
+GRANT SELECT, INSERT, UPDATE, DELETE ON northwind.* TO 'db_steward_demo'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON sakila.* TO 'db_steward_demo'@'%';
+FLUSH PRIVILEGES;

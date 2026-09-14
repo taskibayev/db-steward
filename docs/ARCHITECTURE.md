@@ -26,7 +26,7 @@ Planned bounded modules: Auth, User, Connection, Permission, ClientDatabase, Sch
 
 ## System data model
 
-Implemented tables: `users`, `oauth_identities`, and `client_connections`. Planned later tables: `user_database_access`, `user_table_permissions`, `audit_operations`, `audit_snapshots`, `jobs`, `sql_executions`, `temporary_query_results`, and `notifications`.
+Implemented tables: `users`, `oauth_identities`, `client_connections`, `user_database_access`, and `user_table_permissions`. Planned later tables: `audit_operations`, `audit_snapshots`, `jobs`, `sql_executions`, `temporary_query_results`, and `notifications`.
 
 ## Authentication flow
 
@@ -46,6 +46,21 @@ Implemented tables: `users`, `oauth_identities`, and `client_connections`. Plann
 - Connection API views expose safe metadata and `credentialsConfigured`, never the username, password, ciphertext, key, or driver exception.
 - Connectivity checks have a five-second connection timeout and execute only `SELECT 1`, `SELECT VERSION()`, and `SELECT DATABASE()`.
 - Failures collapse to stable safe error codes. Raw connection exceptions do not enter API responses.
+
+## Authorization model
+
+- A `user_database_access` row assigns one active client connection to one manager and selects either `default_deny` or `default_allow`.
+- A `user_table_permissions` row may independently set `SELECT`, `INSERT`, `UPDATE`, and `DELETE` to allow, deny, or inherit the assignment default.
+- Missing assignments deny manager access. Administrators are allowed without assignments, while inactive users and inactive connections are always denied.
+- `PermissionChecker` is the application port used by future synchronous handlers and workers. Workers must reload current system state and call it again immediately before client-database work.
+- The manager connection list is derived from current assignments and never reveals unassigned or inactive connections.
+
+## Local demo boundary
+
+- `client-mysql-demo` is a separate MySQL container and volume; it never shares storage or credentials with the system database.
+- `make demo` imports checksum-pinned Northwind and Sakila samples, creates an OAuth manager identity, stores encrypted demo connection credentials, and assigns both databases.
+- The client demo account has data-only CRUD grants and no DDL, user-management, or system-database privileges.
+- Demo provisioning refuses to run in the production Symfony environment.
 
 ## Decisions
 

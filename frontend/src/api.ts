@@ -39,6 +39,27 @@ export interface ConnectionInput {
   password?: string | null
 }
 
+export type AccessMode = 'default_deny' | 'default_allow'
+
+export interface TablePermission {
+  id: string
+  table: string
+  select: boolean | null
+  insert: boolean | null
+  update: boolean | null
+  delete: boolean | null
+}
+
+export interface DatabaseAccess {
+  id: string
+  mode: AccessMode
+  user: User
+  connection: ClientConnection
+  tablePermissions: TablePermission[]
+  createdAt: string
+  updatedAt: string
+}
+
 async function responseJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = (await response.json().catch(() => ({}))) as { error?: string }
@@ -75,6 +96,16 @@ async function mutate<T>(url: string, method: string, body?: object): Promise<T>
       body: body ? JSON.stringify(body) : undefined,
     }),
   )
+}
+
+async function mutateVoid(url: string, method: string): Promise<void> {
+  const csrfToken = await getCsrfToken()
+  const response = await fetch(url, {
+    method,
+    credentials: 'same-origin',
+    headers: { 'X-CSRF-Token': csrfToken },
+  })
+  if (!response.ok) throw new Error(`http_${response.status}`)
 }
 
 export async function getUsers(): Promise<User[]> {
@@ -125,6 +156,57 @@ export async function testConnection(id: string): Promise<ClientConnection> {
   return (
     await mutate<{ connection: ClientConnection }>(`/api/admin/connections/${id}/test`, 'POST')
   ).connection
+}
+
+export async function getDatabaseAccesses(): Promise<DatabaseAccess[]> {
+  const response = await responseJson<{ items: DatabaseAccess[] }>(
+    await fetch('/api/admin/access', { credentials: 'same-origin' }),
+  )
+  return response.items
+}
+
+export async function createDatabaseAccess(
+  userId: string,
+  connectionId: string,
+  mode: AccessMode,
+): Promise<DatabaseAccess> {
+  return (
+    await mutate<{ access: DatabaseAccess }>('/api/admin/access', 'POST', {
+      userId,
+      connectionId,
+      mode,
+    })
+  ).access
+}
+
+export async function updateDatabaseAccessMode(
+  id: string,
+  mode: AccessMode,
+): Promise<DatabaseAccess> {
+  return (await mutate<{ access: DatabaseAccess }>(`/api/admin/access/${id}`, 'PUT', { mode }))
+    .access
+}
+
+export async function deleteDatabaseAccess(id: string): Promise<void> {
+  await mutateVoid(`/api/admin/access/${id}`, 'DELETE')
+}
+
+export async function updateTablePermission(
+  accessId: string,
+  table: string,
+  decisions: Omit<TablePermission, 'id' | 'table'>,
+): Promise<TablePermission> {
+  return (
+    await mutate<{ tablePermission: TablePermission }>(
+      `/api/admin/access/${accessId}/tables/${encodeURIComponent(table)}`,
+      'PUT',
+      decisions,
+    )
+  ).tablePermission
+}
+
+export async function deleteTablePermission(accessId: string, table: string): Promise<void> {
+  await mutateVoid(`/api/admin/access/${accessId}/tables/${encodeURIComponent(table)}`, 'DELETE')
 }
 
 export async function logout(): Promise<void> {

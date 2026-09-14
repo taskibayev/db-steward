@@ -1,8 +1,8 @@
 .DEFAULT_GOAL := help
-.PHONY: help init install up down logs migrate worker lint analyse test test-backend test-frontend build check
+.PHONY: help init install up down logs migrate worker demo lint analyse test test-backend test-frontend build check
 
 help:
-	@echo "DB Steward: init up down migrate worker lint analyse test build check"
+	@echo "DB Steward: init up down migrate worker demo lint analyse test build check"
 init:
 	@test -f .env || cp .env.example .env
 	docker compose build
@@ -21,6 +21,9 @@ migrate:
 	docker compose run --rm backend php bin/console doctrine:migrations:migrate --no-interaction
 worker:
 	docker compose run --rm worker
+demo: up migrate
+	./infra/demo-mysql/provision.sh
+	docker compose exec -T backend php bin/console app:demo:provision $${DEMO_MANAGER_EMAIL:-manager@example.com}
 lint:
 	docker compose run --rm backend vendor/bin/php-cs-fixer fix --dry-run --diff
 	docker compose run --rm frontend npm run lint
@@ -37,4 +40,3 @@ build:
 	docker compose build
 	docker compose run --rm frontend npm run build
 check: lint analyse test build
-
