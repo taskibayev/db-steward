@@ -401,13 +401,14 @@ nav button.active {
 }
 .browser-layout {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+  gap: 18px;
   min-height: 420px;
-  border: 1px solid #e1e6ed;
 }
 .schema-sidebar {
   padding: 16px 10px;
-  border-right: 1px solid #e1e6ed;
+  border: 1px solid #e1e6ed;
+  border-radius: 7px;
   background: #f8fafc;
 }
 .schema-sidebar h3 {
@@ -416,8 +417,10 @@ nav button.active {
   text-transform: uppercase;
 }
 .schema-sidebar button {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
   width: 100%;
   padding: 9px 8px;
   border: 0;
@@ -427,15 +430,24 @@ nav button.active {
   text-align: left;
   cursor: pointer;
 }
+.schema-sidebar button span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
 .schema-sidebar button.active {
   color: #205aab;
   background: #e8f1ff;
 }
 .schema-sidebar button small {
+  white-space: nowrap;
   color: #8995a6;
 }
 .data-area {
   min-width: 0;
+  overflow: hidden;
+  border: 1px solid #e1e6ed;
+  border-radius: 7px;
 }
 .browser-toolbar,
 .pagination {
@@ -661,5 +673,9 @@ td small {
   .access-form,
   .rule-form {
     grid-template-columns: 1fr 1fr;
+  }
+  .browser-layout {
+    grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+    gap: 12px;
   }
 }
