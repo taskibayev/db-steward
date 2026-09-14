@@ -363,6 +363,143 @@ nav button.active {
 .danger {
   color: #a23d43;
 }
+.database-browser .section-heading {
+  margin-bottom: 18px;
+}
+.database-cards {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+.database-cards button {
+  display: grid;
+  min-width: 190px;
+  gap: 4px;
+  padding: 13px 15px;
+  border: 1px solid #dce2ea;
+  border-radius: 7px;
+  color: #27364b;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+.database-cards button.active {
+  border-color: #4d83d3;
+  background: #edf4ff;
+}
+.database-cards small,
+.browser-toolbar small {
+  color: #7d8999;
+}
+.browser-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 34px;
+  color: #667085;
+}
+.browser-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: 420px;
+  border: 1px solid #e1e6ed;
+}
+.schema-sidebar {
+  padding: 16px 10px;
+  border-right: 1px solid #e1e6ed;
+  background: #f8fafc;
+}
+.schema-sidebar h3 {
+  margin: 0 8px 12px;
+  font-size: 13px;
+  text-transform: uppercase;
+}
+.schema-sidebar button {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 9px 8px;
+  border: 0;
+  border-radius: 5px;
+  color: #45556c;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.schema-sidebar button.active {
+  color: #205aab;
+  background: #e8f1ff;
+}
+.schema-sidebar button small {
+  color: #8995a6;
+}
+.data-area {
+  min-width: 0;
+}
+.browser-toolbar,
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+}
+.browser-toolbar > div {
+  display: grid;
+  gap: 3px;
+}
+.filter-form {
+  display: flex;
+  flex: 1;
+  justify-content: flex-end;
+  gap: 7px;
+}
+.filter-form input {
+  min-width: 130px;
+  max-width: 220px;
+}
+.data-grid {
+  border-top: 1px solid #edf0f3;
+  border-bottom: 1px solid #edf0f3;
+}
+.data-grid th button {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font-weight: 700;
+  cursor: pointer;
+}
+.data-grid th small {
+  display: block;
+  margin-top: 4px;
+  color: #9aa4b2;
+  font-size: 10px;
+  text-transform: none;
+}
+.data-grid td {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.null-cell {
+  color: #9b6b36;
+  font-style: italic;
+}
+.pagination {
+  justify-content: flex-end;
+  color: #667085;
+  font-size: 13px;
+}
+.pagination span {
+  margin-right: auto;
+}
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 .connection-form {
   display: grid;
   grid-template-columns: 1.2fr 1.5fr 120px 1.2fr;

@@ -20,7 +20,7 @@ final class SystemPermissionChecker implements PermissionChecker
 
     public function isAllowed(User $user, ClientConnection $connection, string $tableName, PermissionOperation $operation): bool
     {
-        if (!$user->isActive() || !$connection->isActive()) {
+        if (!$this->canAccessDatabase($user, $connection)) {
             return false;
         }
 
@@ -36,5 +36,15 @@ final class SystemPermissionChecker implements PermissionChecker
         $rule = $this->tablePermissions->findRule($access, $tableName);
 
         return $rule?->decisionFor($operation) ?? $access->getMode()->defaultDecision();
+    }
+
+    public function canAccessDatabase(User $user, ClientConnection $connection): bool
+    {
+        if (!$user->isActive() || !$connection->isActive()) {
+            return false;
+        }
+
+        return UserRole::Administrator === $user->getRole()
+            || null !== $this->accesses->findAssignment($user, $connection);
     }
 }

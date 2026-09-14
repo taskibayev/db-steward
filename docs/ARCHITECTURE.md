@@ -62,6 +62,15 @@ Implemented tables: `users`, `oauth_identities`, `client_connections`, `user_dat
 - The client demo account has data-only CRUD grants and no DDL, user-management, or system-database privileges.
 - Demo provisioning refuses to run in the production Symfony environment.
 
+## Read-only database browser
+
+- `ClientDatabaseReader` is the read-only port; its DBAL adapter opens a short-lived dynamic connection and always closes it.
+- Schema identifiers originate in `information_schema`. Requested table, sort, and filter column names must exactly match this metadata before DBAL quotes them.
+- Filter values are bound parameters. Pagination is server-side and limited to 25, 50, or 100 rows.
+- Schema discovery requires a current database assignment. Managers only receive tables for which `SELECT` resolves to allowed; the permission is checked again before every row query.
+- Views and tables without a primary key are explicitly marked read-only. Invalid binary UTF-8 values are represented as base64 metadata rather than corrupting JSON.
+- Driver failures collapse to `client_database_unavailable`; raw client errors and credentials never enter API responses.
+
 ## Decisions
 
 - Symfony API plus Vue SPA in one repository.

@@ -60,6 +60,28 @@ export interface DatabaseAccess {
   updatedAt: string
 }
 
+export interface SchemaColumn {
+  name: string
+  type: string
+  nullable: boolean
+  autoincrement: boolean
+  generated: boolean
+}
+
+export interface SchemaTable {
+  name: string
+  kind: 'table' | 'view'
+  columns: SchemaColumn[]
+  primaryKey: string[]
+  readOnly: boolean
+}
+
+export interface RowPage {
+  table: SchemaTable
+  rows: Record<string, unknown>[]
+  pagination: { page: number; pageSize: number; total: number; pages: number }
+}
+
 async function responseJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = (await response.json().catch(() => ({}))) as { error?: string }
@@ -128,6 +150,48 @@ export async function getConnections(): Promise<ClientConnection[]> {
     await fetch('/api/admin/connections', { credentials: 'same-origin' }),
   )
   return response.items
+}
+
+export async function getAvailableConnections(): Promise<ClientConnection[]> {
+  const response = await responseJson<{ items: ClientConnection[] }>(
+    await fetch('/api/connections', { credentials: 'same-origin' }),
+  )
+  return response.items
+}
+
+export async function getDatabaseSchema(connectionId: string): Promise<SchemaTable[]> {
+  const response = await responseJson<{ items: SchemaTable[] }>(
+    await fetch(`/api/connections/${connectionId}/schema`, { credentials: 'same-origin' }),
+  )
+  return response.items
+}
+
+export async function getTableRows(
+  connectionId: string,
+  table: string,
+  options: {
+    page: number
+    pageSize: number
+    sort?: string
+    direction?: 'asc' | 'desc'
+    filter?: Record<string, string>
+  },
+): Promise<RowPage> {
+  const parameters = new URLSearchParams({
+    page: String(options.page),
+    pageSize: String(options.pageSize),
+    direction: options.direction ?? 'asc',
+  })
+  if (options.sort) parameters.set('sort', options.sort)
+  for (const [column, value] of Object.entries(options.filter ?? {}))
+    parameters.set(`filter[${column}]`, value)
+
+  return responseJson<RowPage>(
+    await fetch(
+      `/api/connections/${connectionId}/tables/${encodeURIComponent(table)}/rows?${parameters}`,
+      { credentials: 'same-origin' },
+    ),
+  )
 }
 
 export async function createConnection(input: ConnectionInput): Promise<ClientConnection> {

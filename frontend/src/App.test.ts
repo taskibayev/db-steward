@@ -92,4 +92,94 @@ describe('App', () => {
     expect(wrapper.text()).toContain('Назначить базу менеджеру')
     expect(wrapper.text()).toContain('Правило для таблицы')
   })
+
+  it('lets a manager open an assigned table', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url.endsWith('/me'))
+          return Promise.resolve(
+            jsonResponse({
+              authenticated: true,
+              user: {
+                id: '2',
+                email: 'manager@example.com',
+                role: 'manager',
+                active: true,
+                createdAt: '',
+                lastLoginAt: null,
+              },
+            }),
+          )
+        if (url.endsWith('/config')) return Promise.resolve(jsonResponse({ providers: ['mock'] }))
+        if (url.endsWith('/connections'))
+          return Promise.resolve(
+            jsonResponse({
+              items: [
+                {
+                  id: 'db1',
+                  name: 'Northwind Demo',
+                  host: 'demo',
+                  port: 3306,
+                  database: 'northwind',
+                  credentialsConfigured: true,
+                  active: true,
+                  status: 'reachable',
+                  serverVersion: '8.4',
+                  lastErrorCode: null,
+                  lastCheckedAt: null,
+                },
+              ],
+            }),
+          )
+        if (url.endsWith('/schema'))
+          return Promise.resolve(
+            jsonResponse({
+              items: [
+                {
+                  name: 'orders',
+                  kind: 'table',
+                  primaryKey: ['id'],
+                  readOnly: false,
+                  columns: [
+                    {
+                      name: 'id',
+                      type: 'int',
+                      nullable: false,
+                      autoincrement: true,
+                      generated: false,
+                    },
+                  ],
+                },
+              ],
+            }),
+          )
+        return Promise.resolve(
+          jsonResponse({
+            table: {
+              name: 'orders',
+              kind: 'table',
+              primaryKey: ['id'],
+              readOnly: false,
+              columns: [
+                { name: 'id', type: 'int', nullable: false, autoincrement: true, generated: false },
+              ],
+            },
+            rows: [{ id: 42 }],
+            pagination: { page: 1, pageSize: 25, total: 1, pages: 1 },
+          }),
+        )
+      }),
+    )
+    const wrapper = mountApp()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Northwind Demo')
+    await wrapper.get('.database-cards button').trigger('click')
+    await flushPromises()
+    await wrapper.get('.schema-sidebar button').trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('42')
+    expect(wrapper.text()).toContain('Всего строк: 1')
+  })
 })

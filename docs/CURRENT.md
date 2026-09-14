@@ -2,7 +2,7 @@
 
 ## Stage
 
-Stage 3 — manager database assignments and CRUD permissions (complete).
+Stage 4 — permission-aware schema discovery and data browser (complete).
 
 ## Completed
 
@@ -44,6 +44,14 @@ Stage 3 — manager database assignments and CRUD permissions (complete).
 - An isolated local client MySQL service, checksum-verified Northwind and Sakila imports, and idempotent `make demo` provisioning are available.
 - The local demo manager is assigned both sample databases with data-only CRUD credentials; demo provisioning is disabled in production.
 - Backend: 19 tests and 180 assertions pass after adding demo-provisioning coverage.
+- Read-only client schema discovery is implemented behind a dedicated DBAL port.
+- Managers only receive assigned tables for which `SELECT` is currently allowed; administrators can browse all active connections.
+- Live metadata verifies every table, sort column, and filter column before DBAL quotes the identifier.
+- The API provides server-side pages of 25, 50, or 100 rows, deterministic primary-key ordering, explicit sorting, exact filters, and `NULL` filtering.
+- Views and tables without a primary key are marked read-only; invalid UTF-8 binary cells are safely represented as base64 values.
+- The Vue browser supports database/table selection, schema types, pagination, sorting, filters, `NULL`, binary cells, and Russian/Kazakh/English labels.
+- A real manager session successfully browses both demo connections and a 25-row Northwind page through Nginx.
+- Backend: 23 tests and 240 assertions pass. Frontend: 3 tests pass, and the production build succeeds.
 
 ## Known issues
 
@@ -56,4 +64,4 @@ Stage 3 — manager database assignments and CRUD permissions (complete).
 
 ## Next recommended step
 
-Begin Stage 4: read-only schema discovery and permission-aware table browsing with server-side pagination, sorting, and filters.
+Begin Stage 5: audited single-row INSERT, UPDATE, and DELETE operations with typed before/after snapshots.

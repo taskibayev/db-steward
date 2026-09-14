@@ -9,6 +9,7 @@ import {
   deleteTablePermission,
   getAuthProviders,
   getAuthState,
+  getAvailableConnections,
   getConnections,
   getDatabaseAccesses,
   getUsers,
@@ -26,12 +27,14 @@ import {
   type TablePermission,
   type User,
 } from './api'
+import DatabaseBrowser from './components/DatabaseBrowser.vue'
 
 const { locale, t } = useI18n()
 const auth = ref<AuthState>({ authenticated: false, user: null })
 const providers = ref<string[]>([])
 const users = ref<User[]>([])
 const connections = ref<ClientConnection[]>([])
+const availableConnections = ref<ClientConnection[]>([])
 const accesses = ref<DatabaseAccess[]>([])
 const managerEmail = ref('')
 const mockEmail = ref('admin@example.com')
@@ -71,6 +74,7 @@ onMounted(async () => {
     const [state, configuredProviders] = await Promise.all([getAuthState(), getAuthProviders()])
     auth.value = state
     providers.value = configuredProviders
+    if (state.authenticated) availableConnections.value = await getAvailableConnections()
     if (isAdmin.value)
       [connections.value, users.value, accesses.value] = await Promise.all([
         getConnections(),
@@ -468,6 +472,7 @@ async function signOut(): Promise<void> {
           </div>
           <div v-else class="compact-empty">{{ t('connections.empty') }}</div>
         </section>
+        <DatabaseBrowser :connections="availableConnections" />
       </template>
 
       <template v-else-if="isAdmin && activeSection === 'users'">
@@ -702,6 +707,10 @@ async function signOut(): Promise<void> {
             </button>
           </form>
         </section>
+      </template>
+
+      <template v-else-if="activeSection === 'databases'">
+        <DatabaseBrowser :connections="availableConnections" />
       </template>
 
       <section v-else class="panel empty-state">

@@ -11,3 +11,10 @@ services:
     App\Connection\ClientDatabaseConnector:
         alias: App\Tests\Support\FakeClientDatabaseConnector
         public: true
+
+    App\Tests\Support\FakeClientDatabaseReader:
+        public: true
+
+    App\ClientDatabase\ClientDatabaseReader:
+        alias: App\Tests\Support\FakeClientDatabaseReader
+        public: true
