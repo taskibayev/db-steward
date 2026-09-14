@@ -512,6 +512,80 @@ nav button.active {
   opacity: 0.4;
   cursor: default;
 }
+.row-actions {
+  position: sticky;
+  right: 0;
+  min-width: 140px;
+  white-space: nowrap;
+  background: #fff;
+}
+.row-editor {
+  padding: 20px;
+  border-bottom: 1px solid #e1e6ed;
+  background: #f8fafc;
+}
+.row-editor .section-heading {
+  margin-bottom: 16px;
+}
+.row-editor h3 {
+  margin: 0 0 5px;
+}
+.row-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.row-fields > label {
+  min-width: 0;
+}
+.row-fields > label > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.row-fields input:not([type='checkbox']) {
+  width: 100%;
+  min-width: 0;
+}
+.null-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  font-size: 11px;
+}
+.null-toggle input {
+  min-width: auto;
+  min-height: auto;
+  flex: 0 0 auto;
+}
+.audit-history > .section-heading {
+  padding: 24px;
+}
+.audit-details td {
+  background: #f8fafc;
+}
+.audit-details dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+.audit-details dl div {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 12px;
+}
+.audit-details dt {
+  color: #718096;
+  font-weight: 700;
+}
+.audit-details dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
 .connection-form {
   display: grid;
   grid-template-columns: 1.2fr 1.5fr 120px 1.2fr;
@@ -627,6 +701,11 @@ td small {
   color: #982f35;
   border: 1px solid #f2c8ca;
   background: #fff1f1;
+}
+.alert.success {
+  color: #177348;
+  border: 1px solid #b9e5cc;
+  background: #e8f7ef;
 }
 .empty-state {
   display: grid;

@@ -10,6 +10,7 @@ final readonly class SchemaColumn
         public bool $nullable,
         public bool $autoincrement,
         public bool $generated,
+        public bool $hasDefault,
     ) {
     }
 
@@ -22,6 +23,7 @@ final readonly class SchemaColumn
             'nullable' => $this->nullable,
             'autoincrement' => $this->autoincrement,
             'generated' => $this->generated,
+            'hasDefault' => $this->hasDefault,
         ];
     }
 }

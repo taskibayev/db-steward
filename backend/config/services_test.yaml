@@ -18,3 +18,10 @@ services:
     App\ClientDatabase\ClientDatabaseReader:
         alias: App\Tests\Support\FakeClientDatabaseReader
         public: true
+
+    App\Tests\Support\FakeClientRowWriter:
+        public: true
+
+    App\Crud\ClientRowWriter:
+        alias: App\Tests\Support\FakeClientRowWriter
+        public: true

@@ -66,6 +66,7 @@ export interface SchemaColumn {
   nullable: boolean
   autoincrement: boolean
   generated: boolean
+  hasDefault: boolean
 }
 
 export interface SchemaTable {
@@ -74,11 +75,39 @@ export interface SchemaTable {
   columns: SchemaColumn[]
   primaryKey: string[]
   readOnly: boolean
+  permissions: { select: boolean; insert: boolean; update: boolean; delete: boolean }
 }
 
 export interface RowPage {
-  table: SchemaTable
+  table: Omit<SchemaTable, 'permissions'>
   rows: Record<string, unknown>[]
+  pagination: { page: number; pageSize: number; total: number; pages: number }
+}
+
+export interface TypedValue {
+  type: string
+  value: unknown
+}
+
+export interface AuditOperation {
+  id: string
+  action: 'insert' | 'update' | 'delete'
+  status: 'succeeded' | 'failed' | 'conflict'
+  table: string
+  actor: { id: string; email: string }
+  connection: { id: string; name: string; database: string }
+  primaryKey: Record<string, TypedValue>
+  affectedRows: number
+  correlationId: string
+  error: string | null
+  before: Record<string, TypedValue> | null
+  after: Record<string, TypedValue> | null
+  diff: Record<string, { before: TypedValue | null; after: TypedValue | null }> | null
+  createdAt: string
+}
+
+export interface AuditPage {
+  items: AuditOperation[]
   pagination: { page: number; pageSize: number; total: number; pages: number }
 }
 
@@ -191,6 +220,61 @@ export async function getTableRows(
       `/api/connections/${connectionId}/tables/${encodeURIComponent(table)}/rows?${parameters}`,
       { credentials: 'same-origin' },
     ),
+  )
+}
+
+export async function insertRow(
+  connectionId: string,
+  table: string,
+  values: Record<string, unknown>,
+): Promise<AuditOperation> {
+  return (
+    await mutate<{ operation: AuditOperation }>(
+      `/api/connections/${connectionId}/tables/${encodeURIComponent(table)}/rows`,
+      'POST',
+      { values },
+    )
+  ).operation
+}
+
+export async function updateRow(
+  connectionId: string,
+  table: string,
+  primaryKey: Record<string, unknown>,
+  values: Record<string, unknown>,
+): Promise<AuditOperation> {
+  return (
+    await mutate<{ operation: AuditOperation }>(
+      `/api/connections/${connectionId}/tables/${encodeURIComponent(table)}/rows/one`,
+      'PUT',
+      { primaryKey, values },
+    )
+  ).operation
+}
+
+export async function deleteRow(
+  connectionId: string,
+  table: string,
+  primaryKey: Record<string, unknown>,
+): Promise<AuditOperation> {
+  return (
+    await mutate<{ operation: AuditOperation }>(
+      `/api/connections/${connectionId}/tables/${encodeURIComponent(table)}/rows/one`,
+      'DELETE',
+      { primaryKey, confirmed: true },
+    )
+  ).operation
+}
+
+export async function getAuditHistory(
+  connectionId: string,
+  page = 1,
+  pageSize = 25,
+): Promise<AuditPage> {
+  return responseJson<AuditPage>(
+    await fetch(`/api/connections/${connectionId}/history?page=${page}&pageSize=${pageSize}`, {
+      credentials: 'same-origin',
+    }),
   )
 }
 

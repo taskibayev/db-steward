@@ -2,7 +2,7 @@
 
 ## Stage
 
-Stage 4 — permission-aware schema discovery and data browser (complete).
+Stage 5 — audited single-row CRUD (complete).
 
 ## Completed
 
@@ -52,6 +52,15 @@ Stage 4 — permission-aware schema discovery and data browser (complete).
 - The Vue browser supports database/table selection, schema types, pagination, sorting, filters, `NULL`, binary cells, and Russian/Kazakh/English labels.
 - A real manager session successfully browses both demo connections and a 25-row Northwind page through Nginx.
 - Backend: 23 tests and 240 assertions pass. Frontend: 3 tests pass, and the production build succeeds.
+- System `audit_operations` and `audit_snapshots` tables and their migration are implemented and applied locally.
+- Permission-aware single-row INSERT, UPDATE, and DELETE run through a dedicated DBAL port using live metadata, quoted identifiers, bound values, and client-side transactions.
+- UPDATE and DELETE lock and target a complete simple or composite primary key and must affect exactly one row.
+- Generated, automatic, binary, and primary-key columns are protected from editing; views and tables without a primary key remain read-only.
+- Successful operations retain typed before/after snapshots and diffs; rejected conflicts and safe driver failures are also recorded without leaking raw errors.
+- The data browser provides row creation, editing, explicit delete confirmation, and distinct NULL controls according to current permissions.
+- Database-wide paginated history is available to assigned managers and administrators with actor, status, primary key, diff, and correlation ID.
+- A real manager API session successfully completed and cleaned up an INSERT → UPDATE → DELETE cycle against Northwind, producing three audit records.
+- Backend: 27 tests and 321 assertions pass. Frontend: 3 tests pass, and the production build succeeds.
 
 ## Known issues
 
@@ -61,7 +70,8 @@ Stage 4 — permission-aware schema discovery and data browser (complete).
 - Production requires a unique backed-up `CLIENT_CREDENTIALS_KEY`; automatic key rotation is not implemented yet.
 - TLS certificate options for client MySQL connections are not exposed in the current connection form yet.
 - Table rules currently accept a safe manually entered identifier; selection from verified live schema metadata arrives with Stage 4.
+- Editing an existing primary-key value is intentionally disabled in the current CRUD form.
 
 ## Next recommended step
 
-Begin Stage 5: audited single-row INSERT, UPDATE, and DELETE operations with typed before/after snapshots.
+Begin Stage 6: conflict-safe undo as new compensating audit operations.

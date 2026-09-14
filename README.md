@@ -2,7 +2,7 @@
 
 DB Steward provides controlled access to client MySQL databases. Managers can browse permitted data, edit one row at a time, inspect an append-only audit trail, and safely undo supported CRUD operations. Long-running custom SQL will be handled asynchronously.
 
-Stages 0 through 4 are complete: the application foundation, authentication, encrypted client connections, manager access policies, and the read-only data browser are available.
+Stages 0 through 5 are complete: the application foundation, authentication, encrypted client connections, manager access policies, data browser, and audited single-row CRUD are available.
 
 ## Requirements
 
@@ -88,5 +88,7 @@ Administrators assign databases on the **Access rights** screen. Each assignment
 ## Data browser
 
 Managers and administrators can open an available database on the **Databases** screen, inspect permitted tables and views, and read server-paginated rows. Page sizes are 25, 50, or 100. Sorting and exact-value filters are evaluated by the backend after identifiers are verified against live schema metadata. Enter `__NULL__` as the filter value to select SQL `NULL` values.
+
+Writable tables expose permission-aware controls for adding, editing, and explicitly confirming deletion of one row. Each successful change stores typed before/after snapshots and a diff in the append-only system audit. The **History** screen shows database-wide activity to administrators and assigned managers.
 
 See [the architecture](docs/ARCHITECTURE.md), [technical specification](docs/TECHNICAL_SPEC.md), and [current status](docs/CURRENT.md).

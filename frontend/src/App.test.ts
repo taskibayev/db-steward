@@ -91,6 +91,8 @@ describe('App', () => {
     await wrapper.get('nav button:nth-child(3)').trigger('click')
     expect(wrapper.text()).toContain('Назначить базу менеджеру')
     expect(wrapper.text()).toContain('Правило для таблицы')
+    await wrapper.get('nav button:nth-child(4)').trigger('click')
+    expect(wrapper.text()).toContain('История базы данных')
   })
 
   it('lets a manager open an assigned table', async () => {
@@ -141,6 +143,7 @@ describe('App', () => {
                   kind: 'table',
                   primaryKey: ['id'],
                   readOnly: false,
+                  permissions: { select: true, insert: true, update: true, delete: true },
                   columns: [
                     {
                       name: 'id',
@@ -148,6 +151,7 @@ describe('App', () => {
                       nullable: false,
                       autoincrement: true,
                       generated: false,
+                      hasDefault: false,
                     },
                   ],
                 },
@@ -161,8 +165,16 @@ describe('App', () => {
               kind: 'table',
               primaryKey: ['id'],
               readOnly: false,
+              permissions: { select: true, insert: true, update: true, delete: true },
               columns: [
-                { name: 'id', type: 'int', nullable: false, autoincrement: true, generated: false },
+                {
+                  name: 'id',
+                  type: 'int',
+                  nullable: false,
+                  autoincrement: true,
+                  generated: false,
+                  hasDefault: false,
+                },
               ],
             },
             rows: [{ id: 42 }],

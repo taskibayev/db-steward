@@ -21,11 +21,11 @@ final class FakeClientDatabaseReader implements ClientDatabaseReader
     {
         $this->tables = [
             new SchemaTable('orders', 'table', [
-                new SchemaColumn('id', 'int', false, true, false),
-                new SchemaColumn('customer', 'varchar(100)', false, false, false),
+                new SchemaColumn('id', 'int', false, true, false, false),
+                new SchemaColumn('customer', 'varchar(100)', false, false, false, false),
             ], ['id']),
             new SchemaTable('report', 'view', [
-                new SchemaColumn('total', 'decimal(10,2)', true, false, false),
+                new SchemaColumn('total', 'decimal(10,2)', true, false, false, false),
             ], []),
         ];
     }

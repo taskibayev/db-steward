@@ -10,6 +10,8 @@ use App\ClientDatabase\UnknownSchemaIdentifier;
 use App\Dto\BrowseRowsQuery;
 use App\Entity\ClientConnection;
 use App\Entity\User;
+use App\Permission\PermissionChecker;
+use App\Permission\PermissionOperation;
 use App\Repository\ClientConnectionRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -22,8 +24,12 @@ use Symfony\Component\Uid\Uuid;
 final class DatabaseBrowserController extends AbstractController
 {
     #[Route('/schema', name: 'api_database_schema', methods: ['GET'])]
-    public function schema(string $id, ClientConnectionRepository $connections, ClientDatabaseBrowser $browser): JsonResponse
-    {
+    public function schema(
+        string $id,
+        ClientConnectionRepository $connections,
+        ClientDatabaseBrowser $browser,
+        PermissionChecker $permissions,
+    ): JsonResponse {
         $connection = $this->findConnection($id, $connections);
         $user = $this->getUser();
         if (!$connection instanceof ClientConnection || !$user instanceof User) {
@@ -38,7 +44,18 @@ final class DatabaseBrowserController extends AbstractController
             return $this->json(['error' => 'client_database_unavailable'], Response::HTTP_BAD_GATEWAY);
         }
 
-        return $this->json(['items' => array_map(static fn (SchemaTable $table): array => $table->toArray(), $tables)]);
+        return $this->json(['items' => array_map(
+            fn (SchemaTable $table): array => [
+                ...$table->toArray(),
+                'permissions' => [
+                    'select' => true,
+                    'insert' => !$table->isReadOnly() && $permissions->isAllowed($user, $connection, $table->name, PermissionOperation::Insert),
+                    'update' => !$table->isReadOnly() && $permissions->isAllowed($user, $connection, $table->name, PermissionOperation::Update),
+                    'delete' => !$table->isReadOnly() && $permissions->isAllowed($user, $connection, $table->name, PermissionOperation::Delete),
+                ],
+            ],
+            $tables,
+        )]);
     }
 
     #[Route('/tables/{table}/rows', name: 'api_database_rows', methods: ['GET'], requirements: ['table' => '[^/]+'])]

@@ -28,6 +28,7 @@ import {
   type User,
 } from './api'
 import DatabaseBrowser from './components/DatabaseBrowser.vue'
+import AuditHistory from './components/AuditHistory.vue'
 
 const { locale, t } = useI18n()
 const auth = ref<AuthState>({ authenticated: false, user: null })
@@ -272,6 +273,7 @@ async function removeTableRule(access: DatabaseAccess, permission: TablePermissi
 function sectionTitle(kind: 'eyebrow' | 'title'): string {
   if (activeSection.value === 'users') return t(`users.${kind}`)
   if (activeSection.value === 'access') return t(`access.${kind}`)
+  if (activeSection.value === 'history') return t(`history.${kind}`)
   return t(`connections.${kind}`)
 }
 
@@ -711,6 +713,10 @@ async function signOut(): Promise<void> {
 
       <template v-else-if="activeSection === 'databases'">
         <DatabaseBrowser :connections="availableConnections" />
+      </template>
+
+      <template v-else-if="activeSection === 'history'">
+        <AuditHistory :connections="availableConnections" />
       </template>
 
       <section v-else class="panel empty-state">

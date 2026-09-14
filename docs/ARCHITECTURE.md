@@ -71,6 +71,16 @@ Implemented tables: `users`, `oauth_identities`, `client_connections`, `user_dat
 - Views and tables without a primary key are explicitly marked read-only. Invalid binary UTF-8 values are represented as base64 metadata rather than corrupting JSON.
 - Driver failures collapse to `client_database_unavailable`; raw client errors and credentials never enter API responses.
 
+## Audited single-row CRUD
+
+- `ClientRowWriter` is the mutation port. Its DBAL adapter re-reads live metadata, rejects views and tables without a primary key, quotes verified identifiers, and binds every value.
+- UPDATE and DELETE locate and lock exactly one row by its complete simple or composite primary key. Each client mutation runs in a short transaction and rolls back unless exactly one row is affected.
+- Generated, automatic, and binary columns cannot be edited. `NULL` remains distinct from an empty string; primary-key editing is intentionally disabled.
+- Permissions are resolved again immediately before opening the client connection. A denied operation never reaches the writer.
+- Each completed attempt creates an immutable `audit_operations` row. Successful changes attach a typed `audit_snapshots` record containing before, after, and diff data; conflicts and safe driver failures are also retained.
+- The system and client databases cannot share a transaction. The audit record is written immediately after the client transaction; infrastructure-level uncertainty must never trigger an automatic client write retry.
+- Assigned managers and administrators can read database-wide audit history, including changes made by other users of that database.
+
 ## Decisions
 
 - Symfony API plus Vue SPA in one repository.

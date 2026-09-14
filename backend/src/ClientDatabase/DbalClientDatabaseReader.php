@@ -70,7 +70,7 @@ final class DbalClientDatabaseReader implements ClientDatabaseReader
             [$database],
         )->fetchAllAssociative();
         $columnRows = $connection->executeQuery(
-            'SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? ORDER BY TABLE_NAME, ORDINAL_POSITION',
+            'SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, EXTRA, COLUMN_DEFAULT FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? ORDER BY TABLE_NAME, ORDINAL_POSITION',
             [$database],
         )->fetchAllAssociative();
         $primaryRows = $connection->executeQuery(
@@ -89,6 +89,7 @@ final class DbalClientDatabaseReader implements ClientDatabaseReader
                 'YES' === $row['IS_NULLABLE'],
                 str_contains($extra, 'auto_increment'),
                 str_contains($extra, 'GENERATED'),
+                null !== $row['COLUMN_DEFAULT'],
             );
         }
 
