@@ -4,3 +4,10 @@ services:
         autoconfigure: true
         arguments:
             $environment: '%kernel.environment%'
+
+    App\Tests\Support\FakeClientDatabaseConnector:
+        public: true
+
+    App\Connection\ClientDatabaseConnector:
+        alias: App\Tests\Support\FakeClientDatabaseConnector
+        public: true

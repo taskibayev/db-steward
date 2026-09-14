@@ -18,6 +18,7 @@
         <env name="DATABASE_URL" value="sqlite:///%kernel.project_dir%/var/test.db" force="true" />
         <env name="GOOGLE_OAUTH_CLIENT_ID" value="test-client" force="true" />
         <env name="GOOGLE_OAUTH_CLIENT_SECRET" value="test-secret" force="true" />
+        <env name="CLIENT_CREDENTIALS_KEY" value="MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
     </php>
 

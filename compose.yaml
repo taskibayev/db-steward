@@ -29,6 +29,7 @@ services:
       MESSENGER_TRANSPORT_DSN: amqp://guest:guest@rabbitmq:5672/%2f/messages
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      CLIENT_CREDENTIALS_KEY: ${CLIENT_CREDENTIALS_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
     depends_on:
       system-mysql: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
@@ -53,6 +54,7 @@ services:
       MESSENGER_TRANSPORT_DSN: amqp://guest:guest@rabbitmq:5672/%2f/messages
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      CLIENT_CREDENTIALS_KEY: ${CLIENT_CREDENTIALS_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
     depends_on:
       system-mysql: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }

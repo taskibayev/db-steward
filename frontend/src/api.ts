@@ -14,6 +14,31 @@ export interface AuthState {
   user: User | null
 }
 
+export type ConnectionStatus = 'untested' | 'reachable' | 'unreachable'
+
+export interface ClientConnection {
+  id: string
+  name: string
+  host: string
+  port: number
+  database: string
+  credentialsConfigured: boolean
+  active: boolean
+  status: ConnectionStatus
+  serverVersion: string | null
+  lastErrorCode: string | null
+  lastCheckedAt: string | null
+}
+
+export interface ConnectionInput {
+  name: string
+  host: string
+  port: number
+  database: string
+  username?: string | null
+  password?: string | null
+}
+
 async function responseJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = (await response.json().catch(() => ({}))) as { error?: string }
@@ -65,6 +90,41 @@ export async function createManager(email: string): Promise<User> {
 
 export async function setUserActive(id: string, active: boolean): Promise<User> {
   return (await mutate<{ user: User }>(`/api/admin/users/${id}/status`, 'PATCH', { active })).user
+}
+
+export async function getConnections(): Promise<ClientConnection[]> {
+  const response = await responseJson<{ items: ClientConnection[] }>(
+    await fetch('/api/admin/connections', { credentials: 'same-origin' }),
+  )
+  return response.items
+}
+
+export async function createConnection(input: ConnectionInput): Promise<ClientConnection> {
+  return (await mutate<{ connection: ClientConnection }>('/api/admin/connections', 'POST', input))
+    .connection
+}
+
+export async function updateConnection(
+  id: string,
+  input: ConnectionInput,
+): Promise<ClientConnection> {
+  return (
+    await mutate<{ connection: ClientConnection }>(`/api/admin/connections/${id}`, 'PUT', input)
+  ).connection
+}
+
+export async function setConnectionActive(id: string, active: boolean): Promise<ClientConnection> {
+  return (
+    await mutate<{ connection: ClientConnection }>(`/api/admin/connections/${id}/status`, 'PATCH', {
+      active,
+    })
+  ).connection
+}
+
+export async function testConnection(id: string): Promise<ClientConnection> {
+  return (
+    await mutate<{ connection: ClientConnection }>(`/api/admin/connections/${id}/test`, 'POST')
+  ).connection
 }
 
 export async function logout(): Promise<void> {

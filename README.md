@@ -35,6 +35,8 @@ http://localhost:8080/api/auth/oauth/google/callback
 
 The values in `.env.example` are explicitly local development defaults. Production credentials must be supplied by a secret store and must never be committed.
 
+`CLIENT_CREDENTIALS_KEY` encrypts client-database usernames and passwords with authenticated XChaCha20-Poly1305 encryption. Production must use a unique base64-encoded 32-byte key, kept outside Git. Back it up securely: changing or losing it makes stored credentials unreadable.
+
 ## Canonical commands
 
 ```bash
@@ -62,5 +64,9 @@ GitHub Actions is intentionally disabled. Run `make check` locally before reques
 - RabbitMQ — asynchronous jobs
 - Symfony Messenger worker — job execution
 - Centrifugo — private WebSocket transport
+
+## Client database connections
+
+Administrators can create, edit, test, enable, and disable connections from the **Databases** screen. One connection always targets exactly one MySQL database. Creating or editing performs only read-only connectivity checks (`SELECT 1`, `SELECT VERSION()`, and `SELECT DATABASE()`). Login and password values are encrypted before persistence and never returned by the API.
 
 See [the architecture](docs/ARCHITECTURE.md), [technical specification](docs/TECHNICAL_SPEC.md), and [current status](docs/CURRENT.md).

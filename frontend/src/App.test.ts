@@ -41,7 +41,7 @@ describe('App', () => {
     expect(wrapper.text()).toContain('Тестовый вход')
   })
 
-  it('renders user management for an administrator', async () => {
+  it('renders connection and user management for an administrator', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string) => {
@@ -61,6 +61,7 @@ describe('App', () => {
           )
         if (url.endsWith('/config'))
           return Promise.resolve(jsonResponse({ providers: ['google', 'mock'] }))
+        if (url.endsWith('/connections')) return Promise.resolve(jsonResponse({ items: [] }))
         return Promise.resolve(
           jsonResponse({
             items: [
@@ -80,6 +81,9 @@ describe('App', () => {
     const wrapper = mountApp()
     await flushPromises()
 
+    expect(wrapper.text()).toContain('Клиентские базы данных')
+    expect(wrapper.text()).toContain('Новое подключение')
+    await wrapper.get('nav button:nth-child(2)').trigger('click')
     expect(wrapper.text()).toContain('Пользователи')
     expect(wrapper.text()).toContain('admin@example.com')
     expect(wrapper.text()).toContain('Добавить менеджера')
