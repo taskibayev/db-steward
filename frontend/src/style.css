@@ -14,7 +14,8 @@ body {
 }
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 h1,
@@ -163,6 +164,45 @@ input:focus,
 select:focus {
   outline: 3px solid #dceaff;
   border-color: #4d83d3;
+}
+.sql-editor form {
+  display: grid;
+  gap: 14px;
+}
+.sql-editor select {
+  width: min(100%, 520px);
+}
+.sql-editor textarea {
+  width: 100%;
+  min-height: 190px;
+  padding: 14px;
+  border: 1px solid #d5dae3;
+  border-radius: 7px;
+  background: #101827;
+  color: #e7edf7;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  line-height: 1.5;
+  resize: vertical;
+}
+.risk-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 820px;
+}
+.risk-check input {
+  min-width: auto;
+  flex: none;
+}
+.sql-editor .button {
+  justify-self: start;
+}
+.job-details pre {
+  overflow: auto;
+  padding: 16px;
+  border-radius: 7px;
+  color: #e7edf7;
+  background: #101827;
 }
 .secondary {
   white-space: nowrap;

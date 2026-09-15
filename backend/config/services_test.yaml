@@ -25,3 +25,10 @@ services:
     App\Crud\ClientRowWriter:
         alias: App\Tests\Support\FakeClientRowWriter
         public: true
+
+    App\Tests\Support\FakeClientSqlExecutor:
+        public: true
+
+    App\Sql\ClientSqlExecutor:
+        alias: App\Tests\Support\FakeClientSqlExecutor
+        public: true

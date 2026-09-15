@@ -2,7 +2,7 @@
 
 ## Stage
 
-Stage 6 — conflict-safe undo (complete).
+Stage 7 — queued custom SQL (complete).
 
 ## Completed
 
@@ -69,6 +69,16 @@ Stage 6 — conflict-safe undo (complete).
 - The history interface exposes localized Undo controls and explicit success, conflict, and error states in Russian, Kazakh, and English.
 - Real manager API tests against the isolated Northwind demo verified all three compensations, original-key restoration, conflict detection, and cleanup.
 - Backend: 31 tests and 425 assertions pass. Frontend: 3 tests pass, and the production build succeeds.
+- The phpMyAdmin MySQL AST parser validates exactly one custom SELECT, INSERT, UPDATE, or DELETE and rejects DDL, transaction control, file access, locking reads, multiple statements, and cross/system-database access.
+- Permissions are checked for every write target, JOIN, union, INSERT SELECT source, and nested SELECT both before queuing and again inside the worker.
+- System `jobs`, `sql_executions`, and `temporary_query_results` tables and migrations are implemented and applied locally.
+- RabbitMQ messages contain only resource UUIDs. Jobs are atomically claimed before client access, write retries are disabled, and duplicate delivery cannot reapply a completed mutation.
+- Queued cancellation is guaranteed; running cancellation is represented as a best-effort request.
+- Custom writes require explicit risk acknowledgement, cannot be undone, and report the actual affected-row count after completion.
+- SELECT returns at most 1000 JSON-safe rows, reports truncation, remains private to the job owner or administrator, and is physically deleted by a delayed worker message after one hour.
+- The localized Jobs interface supports submission, polling, status inspection, cancellation, affected-row display, and tabular SELECT results in Russian, Kazakh, and English.
+- Real Nginx → Symfony → RabbitMQ → worker → Northwind tests verified SELECT results, the 1000-row cap, affected rows for INSERT/UPDATE/DELETE, delayed cleanup scheduling, and test-row cleanup.
+- Backend: 47 tests and 542 assertions pass. Frontend: 3 tests pass, and the production build succeeds.
 
 ## Known issues
 
@@ -77,9 +87,8 @@ Stage 6 — conflict-safe undo (complete).
 - Google sign-in requires project-specific OAuth credentials and an authorized callback URL; local mock sign-in is ready without them.
 - Production requires a unique backed-up `CLIENT_CREDENTIALS_KEY`; automatic key rotation is not implemented yet.
 - TLS certificate options for client MySQL connections are not exposed in the current connection form yet.
-- Table rules currently accept a safe manually entered identifier; selection from verified live schema metadata arrives with Stage 4.
 - Editing an existing primary-key value is intentionally disabled in the current CRUD form.
 
 ## Next recommended step
 
-Begin Stage 7: queued custom SQL validation and execution through RabbitMQ.
+Begin Stage 8: persistent notifications and private realtime delivery through Centrifugo.

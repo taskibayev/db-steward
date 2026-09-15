@@ -158,6 +158,10 @@ describe('App', () => {
               ],
             }),
           )
+        if (url.includes('/api/jobs'))
+          return Promise.resolve(
+            jsonResponse({ items: [], pagination: { page: 1, pageSize: 25, total: 0, pages: 1 } }),
+          )
         return Promise.resolve(
           jsonResponse({
             table: {
@@ -193,5 +197,9 @@ describe('App', () => {
     await flushPromises()
     expect(wrapper.text()).toContain('42')
     expect(wrapper.text()).toContain('Всего строк: 1')
+    await wrapper.get('nav button:nth-child(3)').trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('Выполнить SQL-запрос')
+    expect(wrapper.text()).toContain('Поставить в очередь')
   })
 })

@@ -26,7 +26,7 @@ Planned bounded modules: Auth, User, Connection, Permission, ClientDatabase, Sch
 
 ## System data model
 
-Implemented tables: `users`, `oauth_identities`, `client_connections`, `user_database_access`, `user_table_permissions`, `audit_operations`, and `audit_snapshots`. Planned later tables: `jobs`, `sql_executions`, `temporary_query_results`, and `notifications`.
+Implemented tables: `users`, `oauth_identities`, `client_connections`, `user_database_access`, `user_table_permissions`, `audit_operations`, `audit_snapshots`, `jobs`, `sql_executions`, and `temporary_query_results`. Planned later table: `notifications`.
 
 ## Authentication flow
 
@@ -88,6 +88,15 @@ Implemented tables: `users`, `oauth_identities`, `client_connections`, `user_dat
 - Live metadata and typed snapshot column types must still match. Row changes, schema drift, duplicate keys, foreign keys, and other client constraints stop the client transaction without forced overwrite.
 - The original audit row is locked in the system database while eligibility is checked, so only one successful compensation is accepted. A conflict can be retried after its cause is resolved.
 - Managers can undo only their own CRUD and need the current permission for the compensating action; administrators can undo any supported CRUD operation.
+
+## Queued custom SQL
+
+- `SqlValidator` is the validation port; its phpMyAdmin parser adapter accepts exactly one MySQL `SELECT`, `INSERT`, `UPDATE`, or `DELETE` AST and rejects schema changes, transaction control, file access, locking SELECT, multiple statements, and other/system databases.
+- Every table found in the primary statement, JOINs, unions, INSERT SELECT sources, and nested SELECTs is authorized. Write targets require the write operation; read sources require SELECT.
+- The API persists `jobs` and `sql_executions`, then dispatches only the job UUID through RabbitMQ. The worker reloads the user, connection, SQL, and permissions immediately before client access.
+- A job is atomically claimed before client execution. Any duplicate delivery sees a non-queued state and cannot apply a completed write again; Messenger write retries remain disabled.
+- SELECT is wrapped in a server-owned outer query capped at 1001 rows, stores at most 1000 JSON-safe rows, and reports truncation. A delayed UUID-only message physically deletes the private result after one hour; expired data is never returned by the API.
+- Queued cancellation immediately moves to `cancelled`. Running cancellation is recorded as `cancel_requested` and remains best effort. Managers see only their jobs; administrators see every job.
 
 ## Decisions
 

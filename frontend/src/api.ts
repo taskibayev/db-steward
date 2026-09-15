@@ -113,6 +113,37 @@ export interface AuditPage {
   pagination: { page: number; pageSize: number; total: number; pages: number }
 }
 
+export type JobStatus =
+  'queued' | 'running' | 'succeeded' | 'failed' | 'cancel_requested' | 'cancelled'
+
+export interface SqlJob {
+  id: string
+  status: JobStatus
+  actor: { id: string; email: string }
+  connection: { id: string; name: string; database: string }
+  operation: 'select' | 'insert' | 'update' | 'delete'
+  sql: string
+  tables: string[]
+  affectedRows: number | null
+  error: string | null
+  correlationId: string
+  createdAt: string
+  startedAt: string | null
+  completedAt: string | null
+  result: {
+    columns: string[]
+    rows: Record<string, unknown>[]
+    rowCount: number
+    truncated: boolean
+    expiresAt: string
+  } | null
+}
+
+export interface JobPage {
+  items: SqlJob[]
+  pagination: { page: number; pageSize: number; total: number; pages: number }
+}
+
 async function responseJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = (await response.json().catch(() => ({}))) as { error?: string }
@@ -283,6 +314,37 @@ export async function getAuditHistory(
 export async function undoOperation(operationId: string): Promise<AuditOperation> {
   return (await mutate<{ operation: AuditOperation }>(`/api/audit/${operationId}/undo`, 'POST'))
     .operation
+}
+
+export async function createSqlJob(
+  connectionId: string,
+  sql: string,
+  writeAcknowledged: boolean,
+): Promise<SqlJob> {
+  return (
+    await mutate<{ job: SqlJob }>(`/api/connections/${connectionId}/sql-jobs`, 'POST', {
+      sql,
+      writeAcknowledged,
+    })
+  ).job
+}
+
+export async function getJobs(page = 1, pageSize = 25): Promise<JobPage> {
+  return responseJson<JobPage>(
+    await fetch(`/api/jobs?page=${page}&pageSize=${pageSize}`, { credentials: 'same-origin' }),
+  )
+}
+
+export async function getJob(id: string): Promise<SqlJob> {
+  return (
+    await responseJson<{ job: SqlJob }>(
+      await fetch(`/api/jobs/${id}`, { credentials: 'same-origin' }),
+    )
+  ).job
+}
+
+export async function cancelJob(id: string): Promise<SqlJob> {
+  return (await mutate<{ job: SqlJob }>(`/api/jobs/${id}/cancel`, 'POST')).job
 }
 
 export async function createConnection(input: ConnectionInput): Promise<ClientConnection> {

@@ -93,4 +93,6 @@ Writable tables expose permission-aware controls for adding, editing, and explic
 
 Supported CRUD operations can be safely undone from **History**. The application first verifies that the live schema and current row still match the recorded snapshot, then writes a compensating operation. Managers can undo only their own changes; administrators can undo any supported CRUD operation. Conflicts never force an overwrite, and a restored deleted row keeps its original primary key.
 
+The **Jobs** screen runs one custom `SELECT`, `INSERT`, `UPDATE`, or `DELETE` through RabbitMQ. MySQL syntax is parsed before queuing, access is checked again by the worker, and custom writes require explicit acknowledgement because they cannot be undone. SELECT output is capped at 1000 rows and deleted after one hour; write jobs report their actual affected-row count.
+
 See [the architecture](docs/ARCHITECTURE.md), [technical specification](docs/TECHNICAL_SPEC.md), and [current status](docs/CURRENT.md).
