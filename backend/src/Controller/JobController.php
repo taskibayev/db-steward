@@ -10,6 +10,7 @@ use App\Entity\User;
 use App\Job\JobAccessDenied;
 use App\Job\JobView;
 use App\Job\SqlJobManager;
+use App\Notification\NotificationManager;
 use App\Repository\ClientConnectionRepository;
 use App\Repository\JobRepository;
 use App\Repository\TemporaryQueryResultRepository;
@@ -17,6 +18,7 @@ use App\Sql\SqlRejected;
 use App\User\UserRole;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -81,25 +83,44 @@ final class JobController extends AbstractController
     }
 
     #[Route('/api/jobs/{id}/cancel', name: 'api_jobs_cancel', methods: ['POST'])]
-    public function cancel(string $id, JobRepository $jobs, EntityManagerInterface $entityManager): JsonResponse
+    public function cancel(string $id, JobRepository $jobs, EntityManagerInterface $entityManager, NotificationManager $notifications, LoggerInterface $logger): JsonResponse
     {
         $actor = $this->getUser();
         if (!Uuid::isValid($id) || !$actor instanceof User) {
             return $this->json(['error' => 'job_not_found'], Response::HTTP_NOT_FOUND);
         }
-        $job = $entityManager->wrapInTransaction(function () use ($id, $actor, $jobs, $entityManager): ?Job {
+        $cancelledNow = false;
+        $job = $entityManager->wrapInTransaction(function () use ($id, $actor, $jobs, $entityManager, &$cancelledNow): ?Job {
             $job = $jobs->find($id);
             if (!$job instanceof Job || !$this->canView($actor, $job)) {
                 return null;
             }
             $entityManager->lock($job, LockMode::PESSIMISTIC_WRITE);
-            $job->requestCancellation();
+            $cancelledNow = $job->requestCancellation();
             $entityManager->flush();
 
             return $job;
         });
         if (!$job instanceof Job) {
             return $this->json(['error' => 'job_not_found'], Response::HTTP_NOT_FOUND);
+        }
+        if ($cancelledNow) {
+            try {
+                $notifications->create($job->getActor(), 'job_cancelled', [
+                    'jobId' => $job->getId()->toRfc4122(),
+                    'connectionName' => $job->getConnection()->getName(),
+                    'operation' => $job->getSqlExecution()?->getOperation()->value,
+                    'status' => $job->getStatus()->value,
+                    'affectedRows' => null,
+                    'error' => null,
+                ]);
+            } catch (\Throwable $exception) {
+                $logger->warning('Persistent cancellation notification creation failed.', [
+                    'code' => 'notification_persistence_failed',
+                    'exceptionClass' => $exception::class,
+                    'jobId' => $job->getId()->toRfc4122(),
+                ]);
+            }
         }
 
         return $this->json(['job' => JobView::fromEntity($job)]);

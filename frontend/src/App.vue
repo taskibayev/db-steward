@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   createDatabaseAccess,
@@ -13,6 +13,7 @@ import {
   getConnections,
   getDatabaseAccesses,
   getUsers,
+  getNotifications,
   logout,
   setConnectionActive,
   setUserActive,
@@ -30,6 +31,8 @@ import {
 import DatabaseBrowser from './components/DatabaseBrowser.vue'
 import AuditHistory from './components/AuditHistory.vue'
 import SqlJobs from './components/SqlJobs.vue'
+import NotificationsPanel from './components/NotificationsPanel.vue'
+import { startRealtime } from './realtime'
 
 const { locale, t } = useI18n()
 const auth = ref<AuthState>({ authenticated: false, user: null })
@@ -45,6 +48,9 @@ const editingConnectionId = ref<string | null>(null)
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
+const unreadNotifications = ref(0)
+const notificationRevision = ref(0)
+let stopRealtime: (() => void) | undefined
 const connectionForm = reactive({
   name: '',
   host: '',
@@ -76,7 +82,15 @@ onMounted(async () => {
     const [state, configuredProviders] = await Promise.all([getAuthState(), getAuthProviders()])
     auth.value = state
     providers.value = configuredProviders
-    if (state.authenticated) availableConnections.value = await getAvailableConnections()
+    if (state.authenticated) {
+      availableConnections.value = await getAvailableConnections()
+      unreadNotifications.value = (await getNotifications(1, 25)).unreadCount
+      stopRealtime = startRealtime(() => {
+        notificationRevision.value++
+        unreadNotifications.value++
+        globalThis.dispatchEvent(new globalThis.CustomEvent('db-steward:notification'))
+      })
+    }
     if (isAdmin.value)
       [connections.value, users.value, accesses.value] = await Promise.all([
         getConnections(),
@@ -89,6 +103,7 @@ onMounted(async () => {
     loading.value = false
   }
 })
+onUnmounted(() => stopRealtime?.())
 
 function setError(caught: unknown): void {
   error.value = caught instanceof Error ? caught.message : 'unknown_error'
@@ -276,6 +291,7 @@ function sectionTitle(kind: 'eyebrow' | 'title'): string {
   if (activeSection.value === 'access') return t(`access.${kind}`)
   if (activeSection.value === 'history') return t(`history.${kind}`)
   if (activeSection.value === 'jobs') return t(`jobs.${kind}`)
+  if (activeSection.value === 'notifications') return t(`notifications.${kind}`)
   return t(`connections.${kind}`)
 }
 
@@ -338,6 +354,9 @@ async function signOut(): Promise<void> {
           @click="activeSection = item"
         >
           {{ t(`navigation.${item}`) }}
+          <span v-if="item === 'notifications' && unreadNotifications" class="nav-badge">{{
+            unreadNotifications
+          }}</span>
         </button>
       </nav>
       <div class="profile">
@@ -723,6 +742,13 @@ async function signOut(): Promise<void> {
 
       <template v-else-if="activeSection === 'jobs'">
         <SqlJobs :connections="availableConnections" />
+      </template>
+
+      <template v-else-if="activeSection === 'notifications'">
+        <NotificationsPanel
+          :revision="notificationRevision"
+          @unread="unreadNotifications = $event"
+        />
       </template>
 
       <section v-else class="panel empty-state">

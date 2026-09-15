@@ -1,8 +1,8 @@
 # DB Steward
 
-DB Steward provides controlled access to client MySQL databases. Managers can browse permitted data, edit one row at a time, inspect an append-only audit trail, and safely undo supported CRUD operations. Long-running custom SQL will be handled asynchronously.
+DB Steward provides controlled access to client MySQL databases. Managers can browse permitted data, edit one row at a time, inspect an append-only audit trail, safely undo supported CRUD operations, and run long-running custom SQL asynchronously.
 
-Stages 0 through 5 are complete: the application foundation, authentication, encrypted client connections, manager access policies, data browser, and audited single-row CRUD are available.
+Stages 0 through 8 are complete, including private persistent notifications and realtime SQL-job updates through Centrifugo.
 
 ## Requirements
 
@@ -94,5 +94,7 @@ Writable tables expose permission-aware controls for adding, editing, and explic
 Supported CRUD operations can be safely undone from **History**. The application first verifies that the live schema and current row still match the recorded snapshot, then writes a compensating operation. Managers can undo only their own changes; administrators can undo any supported CRUD operation. Conflicts never force an overwrite, and a restored deleted row keeps its original primary key.
 
 The **Jobs** screen runs one custom `SELECT`, `INSERT`, `UPDATE`, or `DELETE` through RabbitMQ. MySQL syntax is parsed before queuing, access is checked again by the worker, and custom writes require explicit acknowledgement because they cannot be undone. SELECT output is capped at 1000 rows and deleted after one hour; write jobs report their actual affected-row count.
+
+Completed, failed, and cancelled jobs create persistent personal notifications. The **Notifications** screen supports unread state, and private Centrifugo events update the interface live. The system database remains authoritative when the browser is offline or realtime delivery is temporarily unavailable.
 
 See [the architecture](docs/ARCHITECTURE.md), [technical specification](docs/TECHNICAL_SPEC.md), and [current status](docs/CURRENT.md).

@@ -250,6 +250,9 @@ nav {
   gap: 6px;
 }
 nav button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
   padding: 11px 12px;
   border: 0;
@@ -259,6 +262,15 @@ nav button {
   font-size: 14px;
   text-align: left;
   cursor: pointer;
+}
+.nav-badge {
+  min-width: 20px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: #fff;
+  background: #3478d4;
+  font-size: 11px;
+  text-align: center;
 }
 nav button:hover,
 nav button.active {
@@ -758,6 +770,44 @@ td small {
   border-top: 1px solid #edf0f3;
   color: #718096;
   text-align: center;
+}
+.notification-list {
+  display: grid;
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid #e2e7ee;
+  border-radius: 8px;
+  background: #e2e7ee;
+}
+.notification-item {
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  align-items: start;
+  gap: 12px;
+  padding: 16px;
+  border: 0;
+  color: #26364d;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+.notification-item.unread {
+  background: #f2f7ff;
+}
+.notification-item small {
+  display: block;
+  margin-top: 5px;
+  color: #718096;
+}
+.notification-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: transparent;
+}
+.notification-item.unread .notification-dot {
+  background: #3478d4;
 }
 .database-glyph {
   display: grid;

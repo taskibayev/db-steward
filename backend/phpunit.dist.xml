@@ -19,6 +19,9 @@
         <env name="GOOGLE_OAUTH_CLIENT_ID" value="test-client" force="true" />
         <env name="GOOGLE_OAUTH_CLIENT_SECRET" value="test-secret" force="true" />
         <env name="CLIENT_CREDENTIALS_KEY" value="MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=" force="true" />
+        <env name="CENTRIFUGO_API_URL" value="http://centrifugo.invalid" force="true" />
+        <env name="CENTRIFUGO_API_KEY" value="test-api-key" force="true" />
+        <env name="CENTRIFUGO_TOKEN_SECRET" value="test-token-secret" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
     </php>
 

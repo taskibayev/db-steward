@@ -191,6 +191,19 @@ export const messages = {
         cancelled: 'Отменено',
       },
     },
+    notifications: {
+      eyebrow: 'События системы',
+      title: 'Уведомления',
+      listTitle: 'Ваши уведомления',
+      description: 'Завершённые и отменённые SQL-задания сохраняются здесь.',
+      readAll: 'Прочитать все',
+      empty: 'Уведомлений пока нет.',
+      types: {
+        job_succeeded: '{operation} в базе «{database}» выполнен. Затронуто строк: {count}.',
+        job_failed: '{operation} в базе «{database}» завершился ошибкой.',
+        job_cancelled: '{operation} в базе «{database}» отменён.',
+      },
+    },
     errors: {
       email_already_exists: 'Пользователь с таким email уже существует.',
       cannot_disable_self: 'Нельзя отключить собственный аккаунт.',
@@ -420,6 +433,20 @@ export const messages = {
         cancelled: 'Болдырылмады',
       },
     },
+    notifications: {
+      eyebrow: 'Жүйе оқиғалары',
+      title: 'Хабарландырулар',
+      listTitle: 'Сіздің хабарландыруларыңыз',
+      description: 'Аяқталған және болдырылмаған SQL тапсырмалары осында сақталады.',
+      readAll: 'Барлығын оқу',
+      empty: 'Хабарландырулар жоқ.',
+      types: {
+        job_succeeded:
+          '«{database}» дерекқорындағы {operation} орындалды. Әсер еткен жолдар: {count}.',
+        job_failed: '«{database}» дерекқорындағы {operation} қатемен аяқталды.',
+        job_cancelled: '«{database}» дерекқорындағы {operation} болдырылмады.',
+      },
+    },
     errors: {
       email_already_exists: 'Бұл email мекенжайы бар пайдаланушы бұрыннан бар.',
       cannot_disable_self: 'Өз тіркелгіңізді өшіруге болмайды.',
@@ -643,6 +670,19 @@ export const messages = {
         failed: 'Failed',
         cancel_requested: 'Cancellation requested',
         cancelled: 'Cancelled',
+      },
+    },
+    notifications: {
+      eyebrow: 'System events',
+      title: 'Notifications',
+      listTitle: 'Your notifications',
+      description: 'Completed and cancelled SQL jobs are retained here.',
+      readAll: 'Mark all as read',
+      empty: 'There are no notifications yet.',
+      types: {
+        job_succeeded: '{operation} on “{database}” succeeded. Affected rows: {count}.',
+        job_failed: '{operation} on “{database}” failed.',
+        job_cancelled: '{operation} on “{database}” was cancelled.',
       },
     },
     errors: {

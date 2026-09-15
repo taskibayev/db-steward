@@ -2,7 +2,7 @@
 
 ## Stage
 
-Stage 7 — queued custom SQL (complete).
+Stage 8 — persistent notifications and private realtime delivery (complete).
 
 ## Completed
 
@@ -79,6 +79,15 @@ Stage 7 — queued custom SQL (complete).
 - The localized Jobs interface supports submission, polling, status inspection, cancellation, affected-row display, and tabular SELECT results in Russian, Kazakh, and English.
 - Real Nginx → Symfony → RabbitMQ → worker → Northwind tests verified SELECT results, the 1000-row cap, affected rows for INSERT/UPDATE/DELETE, delayed cleanup scheduling, and test-row cleanup.
 - Backend: 47 tests and 542 assertions pass. Frontend: 3 tests pass, and the production build succeeds.
+- System `notifications` storage and migration are implemented and applied locally with per-recipient indexes and unread timestamps.
+- Successful, failed, and queued-cancelled SQL jobs create persistent language-neutral notifications for their actor.
+- Notification list, single-read, read-all, and private realtime-token APIs enforce per-user isolation.
+- Short-lived Centrifugo JWTs subscribe each authenticated user to exactly one private `user:{uuid}` channel.
+- Realtime publications contain only notification ID, type, and creation time; SQL, credentials, and query results are never published.
+- The Vue interface shows localized Russian, Kazakh, and English notifications, an unread navigation badge, read controls, and live job refresh.
+- A realtime outage cannot lose a notification because persistence completes first and publication failure is reduced to a safe log event.
+- A real Nginx → Symfony → RabbitMQ → worker → system MySQL → Centrifugo test verified job completion, notification persistence, unread state, JWT issuance, and successful publication.
+- Backend: 50 tests and 593 assertions pass. Frontend: 3 tests pass, and the production build succeeds.
 
 ## Known issues
 
@@ -91,4 +100,4 @@ Stage 7 — queued custom SQL (complete).
 
 ## Next recommended step
 
-Begin Stage 8: persistent notifications and private realtime delivery through Centrifugo.
+Define and begin Stage 9: production hardening, deployment configuration, and release acceptance checks.

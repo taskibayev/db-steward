@@ -42,9 +42,11 @@ describe('App', () => {
   })
 
   it('renders connection and user management for an administrator', async () => {
+    const requestedUrls: string[] = []
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string) => {
+        requestedUrls.push(url)
         if (url.endsWith('/me'))
           return Promise.resolve(
             jsonResponse({
@@ -83,6 +85,7 @@ describe('App', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Клиентские базы данных')
+    expect(requestedUrls).toContain('/api/notifications?page=1&pageSize=25')
     expect(wrapper.text()).toContain('Новое подключение')
     await wrapper.get('nav button:nth-child(2)').trigger('click')
     expect(wrapper.text()).toContain('Пользователи')

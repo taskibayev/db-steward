@@ -32,3 +32,10 @@ services:
     App\Sql\ClientSqlExecutor:
         alias: App\Tests\Support\FakeClientSqlExecutor
         public: true
+
+    App\Tests\Support\FakeRealtimePublisher:
+        public: true
+
+    App\Notification\RealtimePublisher:
+        alias: App\Tests\Support\FakeRealtimePublisher
+        public: true

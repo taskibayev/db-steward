@@ -78,14 +78,18 @@ class Job
         return true;
     }
 
-    public function requestCancellation(): void
+    public function requestCancellation(): bool
     {
         if (JobStatus::Queued === $this->status) {
             $this->status = JobStatus::Cancelled;
             $this->completedAt = new \DateTimeImmutable();
+
+            return true;
         } elseif (JobStatus::Running === $this->status) {
             $this->status = JobStatus::CancelRequested;
         }
+
+        return false;
     }
 
     public function succeed(): void

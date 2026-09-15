@@ -78,8 +78,15 @@ onMounted(async () => {
     )
       void load()
   }, 3000)
+  globalThis.addEventListener('db-steward:notification', refreshFromNotification)
 })
-onUnmounted(() => globalThis.clearInterval(polling))
+function refreshFromNotification(): void {
+  void load()
+}
+onUnmounted(() => {
+  globalThis.clearInterval(polling)
+  globalThis.removeEventListener('db-steward:notification', refreshFromNotification)
+})
 </script>
 
 <template>

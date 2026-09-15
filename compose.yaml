@@ -30,6 +30,9 @@ services:
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
       CLIENT_CREDENTIALS_KEY: ${CLIENT_CREDENTIALS_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+      CENTRIFUGO_API_URL: http://centrifugo:8000
+      CENTRIFUGO_API_KEY: ${CENTRIFUGO_API_KEY:-local-development-api-key}
+      CENTRIFUGO_TOKEN_SECRET: ${CENTRIFUGO_TOKEN_SECRET:-local-development-token-secret}
     depends_on:
       system-mysql: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
@@ -55,6 +58,9 @@ services:
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
       CLIENT_CREDENTIALS_KEY: ${CLIENT_CREDENTIALS_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+      CENTRIFUGO_API_URL: http://centrifugo:8000
+      CENTRIFUGO_API_KEY: ${CENTRIFUGO_API_KEY:-local-development-api-key}
+      CENTRIFUGO_TOKEN_SECRET: ${CENTRIFUGO_TOKEN_SECRET:-local-development-token-secret}
     depends_on:
       system-mysql: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }

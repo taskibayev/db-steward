@@ -26,7 +26,7 @@ Planned bounded modules: Auth, User, Connection, Permission, ClientDatabase, Sch
 
 ## System data model
 
-Implemented tables: `users`, `oauth_identities`, `client_connections`, `user_database_access`, `user_table_permissions`, `audit_operations`, `audit_snapshots`, `jobs`, `sql_executions`, and `temporary_query_results`. Planned later table: `notifications`.
+Implemented tables: `users`, `oauth_identities`, `client_connections`, `user_database_access`, `user_table_permissions`, `audit_operations`, `audit_snapshots`, `jobs`, `sql_executions`, `temporary_query_results`, and `notifications`.
 
 ## Authentication flow
 
@@ -97,6 +97,13 @@ Implemented tables: `users`, `oauth_identities`, `client_connections`, `user_dat
 - A job is atomically claimed before client execution. Any duplicate delivery sees a non-queued state and cannot apply a completed write again; Messenger write retries remain disabled.
 - SELECT is wrapped in a server-owned outer query capped at 1001 rows, stores at most 1000 JSON-safe rows, and reports truncation. A delayed UUID-only message physically deletes the private result after one hour; expired data is never returned by the API.
 - Queued cancellation immediately moves to `cancelled`. Running cancellation is recorded as `cancel_requested` and remains best effort. Managers see only their jobs; administrators see every job.
+
+## Persistent notifications and realtime
+
+- Terminal SQL-job states create a language-neutral, per-user `notifications` row before realtime delivery is attempted. The database remains the source of truth if a client is offline or publication fails.
+- Users can list only their own notifications and mark one or all as read. Notification payloads contain safe display metadata, never SQL text, credentials, or query results.
+- Symfony issues short-lived HMAC JWTs scoped to exactly one private `user:{uuid}` server-side channel. Vue connects to Centrifugo only through Nginx and refreshes persistent state after a publication.
+- `RealtimePublisher` isolates delivery from persistence. Its Centrifugo adapter logs only a stable safe code when the realtime service is unavailable; a delivery failure never rolls back or loses the stored notification.
 
 ## Decisions
 

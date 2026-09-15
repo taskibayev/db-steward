@@ -144,6 +144,20 @@ export interface JobPage {
   pagination: { page: number; pageSize: number; total: number; pages: number }
 }
 
+export interface Notification {
+  id: string
+  type: string
+  data: Record<string, string | number | boolean | null>
+  createdAt: string
+  readAt: string | null
+}
+
+export interface NotificationPage {
+  items: Notification[]
+  unreadCount: number
+  pagination: { page: number; pageSize: number; total: number; pages: number }
+}
+
 async function responseJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = (await response.json().catch(() => ({}))) as { error?: string }
@@ -345,6 +359,31 @@ export async function getJob(id: string): Promise<SqlJob> {
 
 export async function cancelJob(id: string): Promise<SqlJob> {
   return (await mutate<{ job: SqlJob }>(`/api/jobs/${id}/cancel`, 'POST')).job
+}
+
+export async function getNotifications(page = 1, pageSize = 25): Promise<NotificationPage> {
+  return responseJson<NotificationPage>(
+    await fetch(`/api/notifications?page=${page}&pageSize=${pageSize}`, {
+      credentials: 'same-origin',
+    }),
+  )
+}
+
+export async function markNotificationRead(id: string): Promise<Notification> {
+  return (await mutate<{ notification: Notification }>(`/api/notifications/${id}/read`, 'POST'))
+    .notification
+}
+
+export async function markAllNotificationsRead(): Promise<number> {
+  return (await mutate<{ updated: number }>('/api/notifications/read-all', 'POST')).updated
+}
+
+export async function getRealtimeToken(): Promise<string> {
+  return (
+    await responseJson<{ token: string }>(
+      await fetch('/api/realtime/token', { credentials: 'same-origin' }),
+    )
+  ).token
 }
 
 export async function createConnection(input: ConnectionInput): Promise<ClientConnection> {

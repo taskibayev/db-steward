@@ -10,6 +10,7 @@ use App\Job\JobAccessDenied;
 use App\Job\SqlJobManager;
 use App\Message\ExecuteSqlJob;
 use App\Message\ExpireQueryResult;
+use App\Notification\NotificationManager;
 use App\Repository\JobRepository;
 use App\Sql\ClientSqlExecutor;
 use App\Sql\SqlOperation;
@@ -33,6 +34,7 @@ final class ExecuteSqlJobHandler
         private readonly CredentialCipher $cipher,
         private readonly EntityManagerInterface $entityManager,
         private readonly MessageBusInterface $bus,
+        private readonly NotificationManager $notifications,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -81,6 +83,7 @@ final class ExecuteSqlJobHandler
             $this->entityManager->flush();
             $job->succeed();
             $this->entityManager->flush();
+            $this->notify($job);
         } catch (JobAccessDenied) {
             $this->fail($job, 'authorization_revoked');
         } catch (SqlRejected $exception) {
@@ -105,6 +108,29 @@ final class ExecuteSqlJobHandler
     {
         $job->fail($errorCode);
         $this->entityManager->flush();
+        $this->notify($job);
+    }
+
+    private function notify(Job $job): void
+    {
+        $execution = $job->getSqlExecution();
+        $data = [
+            'jobId' => $job->getId()->toRfc4122(),
+            'connectionName' => $job->getConnection()->getName(),
+            'operation' => $execution?->getOperation()->value,
+            'status' => $job->getStatus()->value,
+            'affectedRows' => $execution?->getAffectedRows(),
+            'error' => $job->getErrorCode(),
+        ];
+        try {
+            $this->notifications->create($job->getActor(), 'job_'.$job->getStatus()->value, $data);
+        } catch (\Throwable $exception) {
+            $this->logger->warning('Persistent job notification creation failed.', [
+                'code' => 'notification_persistence_failed',
+                'exceptionClass' => $exception::class,
+                'jobId' => $job->getId()->toRfc4122(),
+            ]);
+        }
     }
 
     private function credentials(Job $job): ClientDatabaseCredentials
