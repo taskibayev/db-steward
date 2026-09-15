@@ -26,7 +26,7 @@ Planned bounded modules: Auth, User, Connection, Permission, ClientDatabase, Sch
 
 ## System data model
 
-Implemented tables: `users`, `oauth_identities`, `client_connections`, `user_database_access`, and `user_table_permissions`. Planned later tables: `audit_operations`, `audit_snapshots`, `jobs`, `sql_executions`, `temporary_query_results`, and `notifications`.
+Implemented tables: `users`, `oauth_identities`, `client_connections`, `user_database_access`, `user_table_permissions`, `audit_operations`, and `audit_snapshots`. Planned later tables: `jobs`, `sql_executions`, `temporary_query_results`, and `notifications`.
 
 ## Authentication flow
 
@@ -80,6 +80,14 @@ Implemented tables: `users`, `oauth_identities`, `client_connections`, `user_dat
 - Each completed attempt creates an immutable `audit_operations` row. Successful changes attach a typed `audit_snapshots` record containing before, after, and diff data; conflicts and safe driver failures are also retained.
 - The system and client databases cannot share a transaction. The audit record is written immediately after the client transaction; infrastructure-level uncertainty must never trigger an automatic client write retry.
 - Assigned managers and administrators can read database-wide audit history, including changes made by other users of that database.
+
+## Conflict-safe undo
+
+- Undo is a new compensating `audit_operations` record linked to its immutable original; failed and conflicting attempts are retained too.
+- Undo INSERT deletes only an unchanged inserted row. Undo UPDATE restores the complete before snapshot only when the current row still equals the recorded after snapshot. Undo DELETE reinserts the before snapshot with its original primary key, including an old auto-increment value.
+- Live metadata and typed snapshot column types must still match. Row changes, schema drift, duplicate keys, foreign keys, and other client constraints stop the client transaction without forced overwrite.
+- The original audit row is locked in the system database while eligibility is checked, so only one successful compensation is accepted. A conflict can be retried after its cause is resolved.
+- Managers can undo only their own CRUD and need the current permission for the compensating action; administrators can undo any supported CRUD operation.
 
 ## Decisions
 

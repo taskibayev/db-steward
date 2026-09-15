@@ -2,6 +2,7 @@
 
 namespace App\Crud;
 
+use App\Audit\TypedSnapshot;
 use App\ClientDatabase\DbalClientConnectionFactory;
 use App\ClientDatabase\DbalSchemaInspector;
 use App\ClientDatabase\SchemaColumn;
@@ -18,6 +19,7 @@ final class DbalClientRowWriter implements ClientRowWriter
     public function __construct(
         private readonly DbalClientConnectionFactory $connections,
         private readonly DbalSchemaInspector $schema,
+        private readonly TypedSnapshot $snapshots,
     ) {
     }
 
@@ -114,6 +116,110 @@ final class DbalClientRowWriter implements ClientRowWriter
         });
     }
 
+    /**
+     * @param array<string, mixed>                $primaryKey
+     * @param array<string, array<string, mixed>> $expectedAfter
+     */
+    public function undoInsert(ClientDatabaseCredentials $credentials, string $table, array $primaryKey, array $expectedAfter): RowMutationResult
+    {
+        return $this->transactional($credentials, function (Connection $connection) use ($credentials, $table, $primaryKey, $expectedAfter): RowMutationResult {
+            $metadata = $this->writableTable($connection, $credentials->database, $table);
+            $this->validatePrimaryKey($metadata, $primaryKey);
+            $this->assertSnapshot($metadata, $expectedAfter);
+            $current = $this->findRow($connection, $metadata, $primaryKey, true);
+            if ($this->snapshots->encode($metadata, $current) !== $expectedAfter) {
+                throw new RowMutationRejected('undo_data_conflict');
+            }
+            $builder = $connection->createQueryBuilder()->delete($connection->quoteIdentifier($metadata->name));
+            $this->applyPrimaryKey($connection, $builder, $primaryKey);
+            if (1 !== $builder->executeStatement()) {
+                throw new RowMutationRejected('unexpected_affected_rows');
+            }
+
+            return new RowMutationResult($metadata, $primaryKey, $current, null, 1);
+        });
+    }
+
+    /**
+     * @param array<string, mixed>                $primaryKey
+     * @param array<string, array<string, mixed>> $before
+     * @param array<string, array<string, mixed>> $expectedAfter
+     */
+    public function undoUpdate(ClientDatabaseCredentials $credentials, string $table, array $primaryKey, array $before, array $expectedAfter): RowMutationResult
+    {
+        return $this->transactional($credentials, function (Connection $connection) use ($credentials, $table, $primaryKey, $before, $expectedAfter): RowMutationResult {
+            $metadata = $this->writableTable($connection, $credentials->database, $table);
+            $this->validatePrimaryKey($metadata, $primaryKey);
+            $this->assertSnapshot($metadata, $before);
+            $this->assertSnapshot($metadata, $expectedAfter);
+            $current = $this->findRow($connection, $metadata, $primaryKey, true);
+            if ($this->snapshots->encode($metadata, $current) !== $expectedAfter) {
+                throw new RowMutationRejected('undo_data_conflict');
+            }
+            $old = $this->snapshots->decode($before);
+            $builder = $connection->createQueryBuilder()->update($connection->quoteIdentifier($metadata->name));
+            foreach ($old as $column => $value) {
+                $definition = $this->column($metadata, $column);
+                if ($definition->generated || in_array($column, $metadata->primaryKey, true)) {
+                    continue;
+                }
+                $parameter = 'value_'.count($builder->getParameters());
+                $builder->set($connection->quoteIdentifier($column), ':'.$parameter)->setParameter($parameter, $value);
+            }
+            $this->applyPrimaryKey($connection, $builder, $primaryKey);
+            if (1 !== $builder->executeStatement()) {
+                throw new RowMutationRejected('unexpected_affected_rows');
+            }
+            $restored = $this->findRow($connection, $metadata, $primaryKey, false);
+            if ($this->snapshots->encode($metadata, $restored) !== $before) {
+                throw new RowMutationRejected('undo_restore_mismatch');
+            }
+
+            return new RowMutationResult($metadata, $primaryKey, $current, $restored, 1);
+        });
+    }
+
+    /**
+     * @param array<string, mixed>                $primaryKey
+     * @param array<string, array<string, mixed>> $before
+     */
+    public function undoDelete(ClientDatabaseCredentials $credentials, string $table, array $primaryKey, array $before): RowMutationResult
+    {
+        return $this->transactional($credentials, function (Connection $connection) use ($credentials, $table, $primaryKey, $before): RowMutationResult {
+            $metadata = $this->writableTable($connection, $credentials->database, $table);
+            $this->validatePrimaryKey($metadata, $primaryKey);
+            $this->assertSnapshot($metadata, $before);
+            if (null !== $this->findOptionalRow($connection, $metadata, $primaryKey, true)) {
+                throw new RowMutationRejected('undo_data_conflict');
+            }
+            $values = [];
+            foreach ($this->snapshots->decode($before) as $column => $value) {
+                if (!$this->column($metadata, $column)->generated) {
+                    $values[$connection->quoteIdentifier($column)] = $value;
+                }
+            }
+            if (1 !== $connection->insert($connection->quoteIdentifier($metadata->name), $values)) {
+                throw new RowMutationRejected('unexpected_affected_rows');
+            }
+            $restored = $this->findRow($connection, $metadata, $primaryKey, false);
+            if ($this->snapshots->encode($metadata, $restored) !== $before) {
+                throw new RowMutationRejected('undo_restore_mismatch');
+            }
+
+            return new RowMutationResult($metadata, $primaryKey, null, $restored, 1);
+        });
+    }
+
+    /** @param array<string, array<string, mixed>> $snapshot */
+    private function assertSnapshot(SchemaTable $table, array $snapshot): void
+    {
+        try {
+            $this->snapshots->assertCompatible($table, $snapshot);
+        } catch (\InvalidArgumentException) {
+            throw new RowMutationRejected('undo_schema_conflict');
+        }
+    }
+
     private function writableTable(Connection $connection, string $database, string $table): SchemaTable
     {
         $metadata = $this->schema->table($connection, $database, $table);
@@ -188,6 +294,26 @@ final class DbalClientRowWriter implements ClientRowWriter
         }
 
         return $rows[0];
+    }
+
+    /**
+     * @param array<string, mixed> $primaryKey
+     *
+     * @return array<string, mixed>|null
+     */
+    private function findOptionalRow(Connection $connection, SchemaTable $table, array $primaryKey, bool $lock): ?array
+    {
+        $builder = $connection->createQueryBuilder()->select('*')->from($connection->quoteIdentifier($table->name));
+        $this->applyPrimaryKey($connection, $builder, $primaryKey);
+        if ($lock) {
+            $builder->forUpdate();
+        }
+        $rows = $builder->setMaxResults(2)->executeQuery()->fetchAllAssociative();
+        if (1 < count($rows)) {
+            throw new RowMutationRejected('primary_key_not_unique');
+        }
+
+        return $rows[0] ?? null;
     }
 
     /** @param array<string, mixed> $primaryKey */

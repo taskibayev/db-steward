@@ -7,7 +7,7 @@ use App\Entity\AuditOperation;
 final class AuditView
 {
     /** @return array<string, mixed> */
-    public static function fromEntity(AuditOperation $operation): array
+    public static function fromEntity(AuditOperation $operation, ?bool $undoAvailable = null): array
     {
         return [
             'id' => $operation->getId()->toRfc4122(),
@@ -31,6 +31,8 @@ final class AuditView
             'after' => $operation->getSnapshot()?->getAfterData(),
             'diff' => $operation->getSnapshot()?->getDiff(),
             'createdAt' => $operation->getCreatedAt()->format(DATE_ATOM),
+            'undoesOperationId' => $operation->getUndoesOperation()?->getId()->toRfc4122(),
+            'undoAvailable' => $undoAvailable,
         ];
     }
 }

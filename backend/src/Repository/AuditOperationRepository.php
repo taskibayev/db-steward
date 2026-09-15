@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Audit\AuditStatus;
 use App\Entity\AuditOperation;
 use App\Entity\ClientConnection;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -29,5 +30,10 @@ final class AuditOperationRepository extends ServiceEntityRepository
     public function countForConnection(ClientConnection $connection): int
     {
         return $this->count(['connection' => $connection]);
+    }
+
+    public function wasSuccessfullyUndone(AuditOperation $operation): bool
+    {
+        return 0 < $this->count(['undoesOperation' => $operation, 'status' => AuditStatus::Succeeded]);
     }
 }

@@ -2,7 +2,7 @@
 
 ## Stage
 
-Stage 5 — audited single-row CRUD (complete).
+Stage 6 — conflict-safe undo (complete).
 
 ## Completed
 
@@ -61,6 +61,14 @@ Stage 5 — audited single-row CRUD (complete).
 - Database-wide paginated history is available to assigned managers and administrators with actor, status, primary key, diff, and correlation ID.
 - A real manager API session successfully completed and cleaned up an INSERT → UPDATE → DELETE cycle against Northwind, producing three audit records.
 - Backend: 27 tests and 321 assertions pass. Frontend: 3 tests pass, and the production build succeeds.
+- Undo INSERT, UPDATE, and DELETE are implemented as new append-only compensating audit operations linked to their originals.
+- Undo verifies live schema types and current row contents before writing; conflicts and database constraints stop the transaction without forced overwrite.
+- Deleted rows are restored with their original primary key, including old auto-increment values.
+- Managers can undo only their own operations and must retain permission for the reverse mutation; administrators can undo all supported CRUD.
+- System-row locking ensures an original operation can be successfully undone only once, while failed conflict attempts remain auditable and retryable.
+- The history interface exposes localized Undo controls and explicit success, conflict, and error states in Russian, Kazakh, and English.
+- Real manager API tests against the isolated Northwind demo verified all three compensations, original-key restoration, conflict detection, and cleanup.
+- Backend: 31 tests and 425 assertions pass. Frontend: 3 tests pass, and the production build succeeds.
 
 ## Known issues
 
@@ -74,4 +82,4 @@ Stage 5 — audited single-row CRUD (complete).
 
 ## Next recommended step
 
-Begin Stage 6: conflict-safe undo as new compensating audit operations.
+Begin Stage 7: queued custom SQL validation and execution through RabbitMQ.

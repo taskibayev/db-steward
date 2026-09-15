@@ -13,6 +13,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Table(name: 'audit_operations')]
 #[ORM\Index(name: 'idx_audit_connection_created', columns: ['connection_id', 'created_at'])]
 #[ORM\Index(name: 'idx_audit_actor_created', columns: ['actor_id', 'created_at'])]
+#[ORM\Index(name: 'idx_audit_undoes_status', columns: ['undoes_operation_id', 'status'])]
 class AuditOperation
 {
     #[ORM\Id]
@@ -55,6 +56,10 @@ class AuditOperation
     #[ORM\OneToOne(targetEntity: AuditSnapshot::class, mappedBy: 'operation', cascade: ['persist'])]
     private ?AuditSnapshot $snapshot = null;
 
+    #[ORM\ManyToOne(targetEntity: self::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'RESTRICT')]
+    private ?self $undoesOperation;
+
     /** @param array<string, array<string, mixed>> $primaryKey */
     public function __construct(
         User $actor,
@@ -66,6 +71,7 @@ class AuditOperation
         int $affectedRows,
         string $correlationId,
         ?string $errorCode = null,
+        ?self $undoesOperation = null,
     ) {
         $this->id = Uuid::v7();
         $this->actor = $actor;
@@ -78,6 +84,7 @@ class AuditOperation
         $this->correlationId = $correlationId;
         $this->errorCode = $errorCode;
         $this->createdAt = new \DateTimeImmutable();
+        $this->undoesOperation = $undoesOperation;
     }
 
     public function attachSnapshot(AuditSnapshot $snapshot): void
@@ -147,5 +154,10 @@ class AuditOperation
     public function getSnapshot(): ?AuditSnapshot
     {
         return $this->snapshot;
+    }
+
+    public function getUndoesOperation(): ?self
+    {
+        return $this->undoesOperation;
     }
 }

@@ -91,7 +91,7 @@ export interface TypedValue {
 
 export interface AuditOperation {
   id: string
-  action: 'insert' | 'update' | 'delete'
+  action: 'insert' | 'update' | 'delete' | 'undo_insert' | 'undo_update' | 'undo_delete'
   status: 'succeeded' | 'failed' | 'conflict'
   table: string
   actor: { id: string; email: string }
@@ -104,6 +104,8 @@ export interface AuditOperation {
   after: Record<string, TypedValue> | null
   diff: Record<string, { before: TypedValue | null; after: TypedValue | null }> | null
   createdAt: string
+  undoesOperationId: string | null
+  undoAvailable: boolean | null
 }
 
 export interface AuditPage {
@@ -276,6 +278,11 @@ export async function getAuditHistory(
       credentials: 'same-origin',
     }),
   )
+}
+
+export async function undoOperation(operationId: string): Promise<AuditOperation> {
+  return (await mutate<{ operation: AuditOperation }>(`/api/audit/${operationId}/undo`, 'POST'))
+    .operation
 }
 
 export async function createConnection(input: ConnectionInput): Promise<ClientConnection> {

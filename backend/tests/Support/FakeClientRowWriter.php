@@ -40,6 +40,40 @@ final class FakeClientRowWriter implements ClientRowWriter
         return new RowMutationResult($this->table(), $primaryKey, ['id' => $primaryKey['id'], 'name' => 'Before'], null, 1);
     }
 
+    /**
+     * @param array<string, mixed>                $primaryKey
+     * @param array<string, array<string, mixed>> $expectedAfter
+     */
+    public function undoInsert(ClientDatabaseCredentials $credentials, string $table, array $primaryKey, array $expectedAfter): RowMutationResult
+    {
+        $this->maybeReject();
+
+        return new RowMutationResult($this->table(), $primaryKey, ['id' => 42, 'name' => 'After'], null, 1);
+    }
+
+    /**
+     * @param array<string, mixed>                $primaryKey
+     * @param array<string, array<string, mixed>> $before
+     * @param array<string, array<string, mixed>> $expectedAfter
+     */
+    public function undoUpdate(ClientDatabaseCredentials $credentials, string $table, array $primaryKey, array $before, array $expectedAfter): RowMutationResult
+    {
+        $this->maybeReject();
+
+        return new RowMutationResult($this->table(), $primaryKey, ['id' => 42, 'name' => 'After'], ['id' => 42, 'name' => 'Before'], 1);
+    }
+
+    /**
+     * @param array<string, mixed>                $primaryKey
+     * @param array<string, array<string, mixed>> $before
+     */
+    public function undoDelete(ClientDatabaseCredentials $credentials, string $table, array $primaryKey, array $before): RowMutationResult
+    {
+        $this->maybeReject();
+
+        return new RowMutationResult($this->table(), $primaryKey, null, ['id' => 42, 'name' => 'Before'], 1);
+    }
+
     private function maybeReject(): void
     {
         if (null !== $this->rejection) {

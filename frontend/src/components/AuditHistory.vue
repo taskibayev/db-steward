@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { getAuditHistory, type AuditPage, type ClientConnection } from '../api'
+import { getAuditHistory, undoOperation, type AuditPage, type ClientConnection } from '../api'
 
 const { connections } = defineProps<{ connections: ClientConnection[] }>()
 const { locale, t } = useI18n()
@@ -11,6 +11,23 @@ const loading = ref(false)
 const error = ref('')
 const expanded = ref<string | null>(null)
 const connectionId = ref('')
+const undoing = ref<string | null>(null)
+
+async function undo(id: string): Promise<void> {
+  if (!connection.value || !globalThis.confirm(t('history.undoConfirm'))) return
+  undoing.value = id
+  error.value = ''
+  try {
+    await undoOperation(id)
+    await load(connection.value, history.value?.pagination.page ?? 1)
+  } catch (caught) {
+    const message = caught instanceof Error ? caught.message : 'unknown_error'
+    await load(connection.value, history.value?.pagination.page ?? 1)
+    error.value = message
+  } finally {
+    undoing.value = null
+  }
+}
 
 async function selectConnection(): Promise<void> {
   const selected = connections.find((item) => item.id === connectionId.value)
@@ -64,7 +81,7 @@ async function load(selected: ClientConnection, page = 1): Promise<void> {
             ><tr>
               <td>{{ new Date(operation.createdAt).toLocaleString(locale) }}</td>
               <td>{{ operation.actor.email }}</td>
-              <td>{{ operation.action.toUpperCase() }}</td>
+              <td>{{ t(`history.actions.${operation.action}`) }}</td>
               <td>
                 <code>{{ operation.table }}</code>
               </td>
@@ -76,6 +93,15 @@ async function load(selected: ClientConnection, page = 1): Promise<void> {
                 >
               </td>
               <td>
+                <button
+                  v-if="operation.undoAvailable"
+                  class="text-button"
+                  type="button"
+                  :disabled="undoing === operation.id"
+                  @click="undo(operation.id)"
+                >
+                  {{ undoing === operation.id ? t('common.loading') : t('history.undo') }}
+                </button>
                 <button
                   class="text-button"
                   type="button"

@@ -10,6 +10,7 @@ use App\Entity\User;
 use App\Permission\PermissionChecker;
 use App\Repository\AuditOperationRepository;
 use App\Repository\ClientConnectionRepository;
+use App\Undo\UndoManager;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,6 +26,7 @@ final class AuditController extends AbstractController
         ClientConnectionRepository $connections,
         AuditOperationRepository $operations,
         PermissionChecker $permissions,
+        UndoManager $undo,
         #[MapQueryString]
         AuditHistoryQuery $query = new AuditHistoryQuery(),
     ): JsonResponse {
@@ -41,7 +43,7 @@ final class AuditController extends AbstractController
 
         return $this->json([
             'items' => array_map(
-                static fn (AuditOperation $operation): array => AuditView::fromEntity($operation),
+                fn (AuditOperation $operation): array => AuditView::fromEntity($operation, $undo->canUndo($user, $operation)),
                 $operations->findPage($connection, $query->page, $query->pageSize),
             ),
             'pagination' => [
