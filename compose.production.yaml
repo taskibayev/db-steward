@@ -1,0 +1,134 @@
+name: db-steward-production
+
+x-logging: &default_logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  nginx:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    ports: ["${HTTP_PORT:-80}:80", "${HTTPS_PORT:-443}:443"]
+    security_opt: [no-new-privileges:true]
+    logging: *default_logging
+    volumes:
+      - ./infra/nginx/production.conf:/etc/nginx/conf.d/default.conf:ro
+      - "${TLS_CERTIFICATE_PATH:?TLS_CERTIFICATE_PATH is required}:/etc/nginx/tls/fullchain.pem:ro"
+      - "${TLS_PRIVATE_KEY_PATH:?TLS_PRIVATE_KEY_PATH is required}:/etc/nginx/tls/privkey.pem:ro"
+      - backend_public:/app/public:ro
+    depends_on:
+      backend: { condition: service_healthy }
+      frontend: { condition: service_healthy }
+      centrifugo: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "--no-check-certificate", "-q", "--spider", "https://127.0.0.1/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: { context: ./backend, target: production }
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    logging: *default_logging
+    environment: &backend_environment
+      APP_ENV: prod
+      APP_DEBUG: 0
+      APP_SECRET: "${APP_SECRET:?APP_SECRET is required}"
+      DATABASE_URL: "${DATABASE_URL:?DATABASE_URL is required}"
+      MESSENGER_TRANSPORT_DSN: "${MESSENGER_TRANSPORT_DSN:?MESSENGER_TRANSPORT_DSN is required}"
+      GOOGLE_OAUTH_CLIENT_ID: "${GOOGLE_OAUTH_CLIENT_ID:?GOOGLE_OAUTH_CLIENT_ID is required}"
+      GOOGLE_OAUTH_CLIENT_SECRET: "${GOOGLE_OAUTH_CLIENT_SECRET:?GOOGLE_OAUTH_CLIENT_SECRET is required}"
+      CLIENT_CREDENTIALS_KEY: "${CLIENT_CREDENTIALS_KEY:?CLIENT_CREDENTIALS_KEY is required}"
+      CENTRIFUGO_API_URL: http://centrifugo:8000
+      CENTRIFUGO_API_KEY: "${CENTRIFUGO_API_KEY:?CENTRIFUGO_API_KEY is required}"
+      CENTRIFUGO_TOKEN_SECRET: "${CENTRIFUGO_TOKEN_SECRET:?CENTRIFUGO_TOKEN_SECRET is required}"
+    volumes:
+      - backend_public:/app/public
+    depends_on:
+      system-mysql: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "php-fpm-healthcheck"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  worker:
+    build: { context: ./backend, target: production }
+    restart: unless-stopped
+    command: php bin/console messenger:consume async --time-limit=3600 --memory-limit=256M --sleep=1 --no-interaction
+    stop_grace_period: 30s
+    security_opt: [no-new-privileges:true]
+    logging: *default_logging
+    environment: *backend_environment
+    depends_on:
+      system-mysql: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  frontend:
+    build: { context: ./frontend, target: production }
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    logging: *default_logging
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  system-mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    logging: *default_logging
+    environment:
+      MYSQL_DATABASE: "${MYSQL_DATABASE:?MYSQL_DATABASE is required}"
+      MYSQL_USER: "${MYSQL_USER:?MYSQL_USER is required}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
+    volumes: [system_mysql_data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4.1-alpine
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    logging: *default_logging
+    environment:
+      RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER:?RABBITMQ_USER is required}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}"
+    volumes: [rabbitmq_data:/var/lib/rabbitmq]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  centrifugo:
+    image: centrifugo/centrifugo:v5
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    logging: *default_logging
+    command: centrifugo -c config.json
+    environment:
+      CENTRIFUGO_TOKEN_HMAC_SECRET_KEY: "${CENTRIFUGO_TOKEN_SECRET:?CENTRIFUGO_TOKEN_SECRET is required}"
+      CENTRIFUGO_API_KEY: "${CENTRIFUGO_API_KEY:?CENTRIFUGO_API_KEY is required}"
+    volumes: ["${CENTRIFUGO_CONFIG_PATH:?CENTRIFUGO_CONFIG_PATH is required}:/centrifugo/config.json:ro"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  backend_public:
+  system_mysql_data:
+  rabbitmq_data:

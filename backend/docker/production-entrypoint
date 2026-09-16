@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+php bin/console app:production:validate --no-interaction
+exec "$@"

@@ -2,7 +2,7 @@
 
 ## Stage
 
-Stage 8 — persistent notifications and private realtime delivery (complete).
+Stage 9 — production hardening and release preparation (complete).
 
 ## Completed
 
@@ -88,6 +88,16 @@ Stage 8 — persistent notifications and private realtime delivery (complete).
 - A realtime outage cannot lose a notification because persistence completes first and publication failure is reduced to a safe log event.
 - A real Nginx → Symfony → RabbitMQ → worker → system MySQL → Centrifugo test verified job completion, notification persistence, unread state, JWT issuance, and successful publication.
 - Backend: 50 tests and 593 assertions pass. Frontend: 3 tests pass, and the production build succeeds.
+- A separate production Compose topology builds immutable Symfony and static Vue images with no source bind mounts, demo database, or exposed infrastructure management UI.
+- Production Nginx enforces HTTPS, HTTP/2, HSTS, CSP, browser security headers, API/OAuth rate limits, and WebSocket connection limits.
+- Only ports 80/443 are published; system MySQL, RabbitMQ, Symfony, Vue, and Centrifugo remain private to the Compose network.
+- Backend and worker fail fast when production configuration contains missing, weak, malformed, local-development, or placeholder secrets.
+- Secure production session cookies have a dedicated name, HttpOnly, SameSite=Lax, and Secure settings.
+- Production containers use `no-new-privileges`, restart policies, health checks, and bounded JSON-file log rotation.
+- The production runbook documents secret generation, deployment, migrations, acceptance, monitoring, system-database backup/restore, upgrade, and rollback constraints.
+- `make production-check` validates Compose, Centrifugo and TLS Nginx configuration, builds both production images, and executes production secret validation inside the final backend image.
+- An isolated seven-service production smoke deployment reached healthy state and returned HTTP/2 with all required security headers; its temporary containers and volumes were removed afterward.
+- Backend: 52 tests and 599 assertions pass. Frontend: 3 tests pass; development and production image builds succeed.
 
 ## Known issues
 
@@ -100,4 +110,4 @@ Stage 8 — persistent notifications and private realtime delivery (complete).
 
 ## Next recommended step
 
-Define and begin Stage 9: production hardening, deployment configuration, and release acceptance checks.
+Run manual release acceptance with real deployment DNS, trusted TLS certificates, Google OAuth credentials, production secrets, backup storage, and representative client databases before onboarding users.

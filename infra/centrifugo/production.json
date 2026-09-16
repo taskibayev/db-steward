@@ -1,0 +1,6 @@
+{
+  "allowed_origins": ["https://db-steward.example.com"],
+  "namespaces": [{ "name": "user" }],
+  "health": true,
+  "log_level": "info"
+}

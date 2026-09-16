@@ -105,6 +105,14 @@ Implemented tables: `users`, `oauth_identities`, `client_connections`, `user_dat
 - Symfony issues short-lived HMAC JWTs scoped to exactly one private `user:{uuid}` server-side channel. Vue connects to Centrifugo only through Nginx and refreshes persistent state after a publication.
 - `RealtimePublisher` isolates delivery from persistence. Its Centrifugo adapter logs only a stable safe code when the realtime service is unavailable; a delivery failure never rolls back or loses the stored notification.
 
+## Production boundary
+
+- `compose.production.yaml` is separate from local development: it builds immutable backend and frontend images, publishes only Nginx ports 80/443, excludes demo data and management UIs, and keeps internal services on the Compose network.
+- Nginx terminates TLS, redirects HTTP, adds HSTS/CSP and browser hardening headers, applies distinct API/OAuth rate limits and a WebSocket connection limit, and proxies a production-built static Vue image.
+- Backend and worker run the same production image and fail before startup unless `app:production:validate` accepts the environment, non-placeholder secrets, DSNs, OAuth configuration, and the exact 32-byte credential-encryption key.
+- Containers use bounded local log rotation and `no-new-privileges`. Production Centrifugo uses a deployment-owned configuration with an explicit HTTPS origin and private `user` namespace.
+- Operational procedures cover system-database backup/restore, migration ordering, rollback constraints, monitoring, and release acceptance. Client-database dumps and migrations remain outside DB Steward's boundary.
+
 ## Decisions
 
 - Symfony API plus Vue SPA in one repository.

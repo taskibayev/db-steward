@@ -49,11 +49,14 @@ make analyse        # PHPStan and TypeScript
 make test           # backend and frontend tests
 make build          # container and frontend builds
 make check          # all checks
+make production-check # production Compose/config and image builds
 ```
 
 Migrations must never be run against client databases.
 
 GitHub Actions is intentionally disabled. Run `make check` locally before requesting a commit.
+
+Production uses the separate `compose.production.yaml` topology. Follow the [production deployment and acceptance runbook](docs/DEPLOYMENT.md); never deploy the local development Compose file.
 
 ## Services
 

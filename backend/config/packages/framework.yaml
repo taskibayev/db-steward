@@ -11,6 +11,9 @@ when@prod:
     framework:
         session:
             cookie_secure: true
+            cookie_httponly: true
+            cookie_samesite: lax
+            name: db_steward_session
 
     #esi: true
     #fragments: true

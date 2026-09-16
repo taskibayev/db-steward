@@ -20,4 +20,18 @@ ENV APP_ENV=prod
 COPY composer.json composer.lock symfony.lock ./
 RUN composer install --no-dev --classmap-authoritative --no-interaction --no-progress --no-scripts
 COPY . .
-RUN composer run-script post-install-cmd
+RUN composer dump-autoload --no-dev --classmap-authoritative --no-interaction \
+    && APP_SECRET=build-only-app-secret-0000000000000000 \
+    DATABASE_URL=mysql://build:build@127.0.0.1/build?serverVersion=8.4 \
+    MESSENGER_TRANSPORT_DSN=amqp://build:build@127.0.0.1/%2f/messages \
+    GOOGLE_OAUTH_CLIENT_ID=build-client \
+    GOOGLE_OAUTH_CLIENT_SECRET=build-only-google-secret-000000000000 \
+    CLIENT_CREDENTIALS_KEY=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY= \
+    CENTRIFUGO_API_URL=http://127.0.0.1:8000 \
+    CENTRIFUGO_API_KEY=build-only-api-key-00000000000000000000 \
+    CENTRIFUGO_TOKEN_SECRET=build-only-token-secret-00000000000000 \
+    composer run-script post-install-cmd
+COPY docker/production-entrypoint /usr/local/bin/db-steward-production-entrypoint
+RUN chmod +x /usr/local/bin/db-steward-production-entrypoint
+ENTRYPOINT ["db-steward-production-entrypoint"]
+CMD ["php-fpm"]
